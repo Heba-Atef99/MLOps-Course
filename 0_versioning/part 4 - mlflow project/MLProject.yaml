@@ -1,0 +1,37 @@
+name: Loan_Prediction_EX
+
+conda_env: conda.yaml
+# or
+# python_env: python_env.yaml
+# or
+# docker_env:
+#    image:  mlflow-docker-example
+
+entry_points:
+  main:
+    command: "python main.py"
+    # parameters:
+    #   model: "LogisticRegression"
+    #   data_path: "data/processed/loan_data.csv"
+    #   output_path: "models/loan_model.pkl"
+    #   test_size: 0.2
+    #   random_state: 42
+    #   n_estimators: 100
+    #   max_depth: 10
+    #   min_samples_split: 2
+    #   min_samples_leaf: 1
+    #   learning_rate: 0.01
+    #   n_iter: 1000
+    #   batch_size: 32
+
+# entry_points:
+#   main:
+#     parameters:
+#       data_file: path
+#       regularization: { type: float, default: 0.1 }
+#     command: "python train.py -r {regularization} {data_file}"
+#   validate:
+#     parameters:
+#       data_file: path
+#     command: "python validate.py {data_file}"
+
