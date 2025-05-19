@@ -23,17 +23,17 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          cd 5_ci_cd/ci_example
+          cd 5_ci_cd/cicd_example
           pip install -r requirements.txt
 
       - name: Run Tests
         run: |
-          cd 5_ci_cd/ci_example
+          cd 5_ci_cd/cicd_example
           pytest 
 
       - name: Build Docker Image
         run: |
-          cd 5_ci_cd/ci_example
+          cd 5_ci_cd/cicd_example
           docker build -t ml-model-service:latest .
 
       - name: Configure AWS credentials
