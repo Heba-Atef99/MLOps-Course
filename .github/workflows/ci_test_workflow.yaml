@@ -21,4 +21,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest
+        run: |
+          cd 5_ci_cd/ci_example
+          pytest

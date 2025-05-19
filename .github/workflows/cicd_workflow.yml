@@ -25,8 +25,10 @@ jobs:
         run: pip install -r 5_ci_cd/ci_example/requirements.txt
 
       - name: Run Tests
-        run: pytest 5_ci_cd/ci_example
-
+        run: |
+          cd 5_ci_cd/ci_example
+          pytest 
+          
       - name: Build Docker Image
         run: docker build -t ml-model-service:latest 5_ci_cd/ci_example/Dockerfile
 
