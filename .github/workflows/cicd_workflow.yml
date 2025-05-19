@@ -22,15 +22,19 @@ jobs:
           python-version: '3.10' 
 
       - name: Install Dependencies
-        run: pip install -r 5_ci_cd/ci_example/requirements.txt
+        run: |
+          cd 5_ci_cd/ci_example
+          pip install -r requirements.txt
 
       - name: Run Tests
         run: |
           cd 5_ci_cd/ci_example
           pytest 
-          
+
       - name: Build Docker Image
-        run: docker build -t ml-model-service:latest 5_ci_cd/ci_example/Dockerfile
+        run: |
+          cd 5_ci_cd/ci_example
+          docker build -t ml-model-service:latest .
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@0e613a0980cbf65ed5b322eb7a1e075d28913a83
