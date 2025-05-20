@@ -14,7 +14,7 @@ def test_simple_text_count():
     # Test if return is as expected
     assert wc.word_count_handler(event, None) == expected
 
-# def test_no_body():
-#     event = {}
-#     expected = {"error": "no body"}
-#     assert wc.word_count_handler(event, None) == expected
+def test_no_body():
+    event = {}
+    expected = {"error": "no body"}
+    assert wc.word_count_handler(event, None) == expected
