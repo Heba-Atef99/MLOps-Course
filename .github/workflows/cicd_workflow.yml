@@ -60,6 +60,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }} 
           key: ${{ secrets.EC2_SSH_KEY }}  
           script: |
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/churn-prediction:latest
             docker stop churn-prediction || true # In case the container doesn't exist yet
             docker rm churn-prediction || true
