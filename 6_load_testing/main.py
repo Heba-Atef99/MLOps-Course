@@ -6,4 +6,4 @@ if __name__ == '__main__':
     testing_file = base_path / "locustfile.py"
 
     # # Development
-    subprocess.run(["locust", "-f", str(testing_file), "--web-port", "80", "-H", "http://18.207.222.253"])
+    subprocess.run(["locust", "-f", str(testing_file), "--web-port", "80", "-H", "http://100.24.54.121"])

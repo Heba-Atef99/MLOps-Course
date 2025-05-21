@@ -2,7 +2,7 @@ from locust import HttpUser, task, between
 
 class LoanApplicantUser(HttpUser):
     wait_time = between(1, 5)
-    # host = "http://18.207.222.253"
+    # host = "http://100.24.54.121"
     payload = {
         "Dependents": 5,
         "Education": "Graduate",
@@ -20,7 +20,14 @@ class LoanApplicantUser(HttpUser):
 
     @task(5)
     def predict(self):
-        self.client.post("/prediction", json=self.payload, headers=self.headers)
+        self.client.post("/predict", json=self.payload, headers=self.headers)
+
+    @task
+    def visit_index(self):
+        self.client.get("/")
+
+class LoanApplicantUser2(HttpUser):
+    wait_time = between(1, 5)
 
     @task
     def visit_index(self):
