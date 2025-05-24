@@ -44,14 +44,14 @@ The course is organized into sequential modules that reflect the stages of a typ
 
 ```
 MLOps-Course/
-├── 0_versioning/         # Experiment tracking using MLflow
-├── 1_packaging/          # Techniques for packaging ML models into reusable components
-├── 2_serving/            # Methods for serving models using FastAPI & other techniques
-├── 3_unit_testing/       # Practices for unit testing ML code to ensure reliability
-├── 4_containerization/   # Using Docker to containerize ML applications
-├── 5_ci_cd/              # Implementing Continuous Integration and Deployment pipelines using GitHub Actions
-├── 6_load_testing/       # Assessing the performance of ML services under load using locust
-├── 7_monitoring/         # Monitoring deployed models for performance and drift with Graphana & Prometheus
+├── 1_versioning/         # Experiment tracking using MLflow
+├── 2_packaging/          # Techniques for packaging ML models into reusable components
+├── 3_serving/            # Methods for serving models using FastAPI & other techniques
+├── 4_unit_testing/       # Practices for unit testing ML code to ensure reliability
+├── 5_containerization/   # Using Docker to containerize ML applications
+├── 6_ci_cd/              # Implementing Continuous Integration and Deployment pipelines using GitHub Actions
+├── 7_load_testing/       # Assessing the performance of ML services under load using locust
+├── 8_monitoring/         # Monitoring deployed models for performance and drift with Graphana & Prometheus
 └── README.md             # Course overview and instructions
 ```
 
