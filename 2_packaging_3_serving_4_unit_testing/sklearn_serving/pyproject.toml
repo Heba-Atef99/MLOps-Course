@@ -1,0 +1,36 @@
+[project]
+name = "iris-serving-demo"
+version = "0.1.0"
+description = "MLOps demo: model packaging (skops), serving (Litestar), logging (HyperDX), and unit testing"
+requires-python = ">=3.11"
+dependencies = [
+    "litestar[standard]",
+    "scikit-learn",
+    "skops",
+    "hyperdx-opentelemetry",
+    "python-dotenv",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+    "pyright",
+    "pre-commit",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "training"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
