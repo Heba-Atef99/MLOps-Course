@@ -11,7 +11,15 @@ uv run uvicorn app.main:app --reload  # start server
 uv run pytest                    # run tests
 ```
 
-Swagger UI: http://localhost:8000/schema/swagger
+**API docs (while server is running):**
+
+| URL | Description |
+| --- | --- |
+| http://localhost:8000/schema/swagger | Swagger UI |
+| http://localhost:8000/schema/redoc | ReDoc |
+| http://localhost:8000/schema/rapidoc | RapiDoc |
+| http://localhost:8000/schema/elements | Stoplight Elements |
+| http://localhost:8000/schema/openapi.json | Raw OpenAPI JSON |
 
 ## Project Structure
 

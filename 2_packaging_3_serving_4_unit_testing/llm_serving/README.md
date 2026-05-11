@@ -95,6 +95,12 @@ llm_serving/
 
 ### Model Optimization: Quantization (FP16 vs AWQ INT4)
 
+**AWQ (Activation-aware Weight Quantization)** compresses model weights from 16-bit
+floats to 4-bit integers. Unlike naive quantization that treats all weights equally,
+AWQ identifies the ~1% of "salient" weights that activations depend on most and
+preserves those more carefully. The rest get quantized aggressively. The result is
+~3.5x less memory with near-identical output quality.
+
 | Metric      | FP16 (BFloat16)           | AWQ (INT4)            |
 | ----------- | ------------------------- | --------------------- |
 | VRAM        | ~14GB                     | ~4GB                  |
@@ -104,6 +110,19 @@ llm_serving/
 
 You don't quantize at serve time. You download a **pre-quantized checkpoint** from HuggingFace
 (`Qwen/Qwen2.5-7B-Instruct-AWQ`). The quantization was done offline using AutoAWQ.
+
+### Why Not Pruning or Knowledge Distillation?
+
+The lecture also covers **pruning** (removing near-zero weights) and **knowledge
+distillation** (training a smaller student model to mimic a larger teacher). We chose
+not to demo these because:
+
+- Both are **offline training techniques** that require custom training loops,
+  significant compute, and large datasets. They don't fit a packaging/serving demo.
+- For LLMs, pruning and distillation are research-grade tasks (weeks of GPU time),
+  while quantization is a practical one-step process (download a pre-quantized checkpoint).
+- Quantization gives the most dramatic, visible result for a demo: same model,
+  same prompts, 3.5x less VRAM, students can see it with `nvidia-smi`.
 
 ### Serialization Format: safetensors
 
