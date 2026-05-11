@@ -1,5 +1,6 @@
-import pytest
 import sys
+
+import pytest
 import src.word_count as wc
 
 
@@ -13,6 +14,7 @@ def test_simple_text_count():
 
     # Test if return is as expected
     assert wc.word_count_handler(event, None) == expected
+
 
 def test_no_body():
     event = {}

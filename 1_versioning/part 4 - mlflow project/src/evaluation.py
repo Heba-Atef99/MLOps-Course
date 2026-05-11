@@ -1,7 +1,9 @@
-from sklearn import metrics
-import matplotlib.pyplot as plt
-from pathlib import Path
 import logging
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+from sklearn import metrics
+
 
 def eval_metrics(actual, pred):
     logging.info("Calculating evaluation metrics...")
@@ -11,18 +13,19 @@ def eval_metrics(actual, pred):
     auc = metrics.auc(fpr, tpr)
     return accuracy, f1, auc
 
+
 def plot_roc_curve(actual, pred, output_dir: Path):
     logging.info("Plotting ROC curve...")
     fpr, tpr, _ = metrics.roc_curve(actual, pred)
     auc = metrics.auc(fpr, tpr)
     plt.figure(figsize=(8, 8))
-    plt.plot(fpr, tpr, color='blue', label='ROC curve area = %0.2f' % auc)
-    plt.plot([0, 1], [0, 1], 'r--')
+    plt.plot(fpr, tpr, color="blue", label="ROC curve area = %0.2f" % auc)
+    plt.plot([0, 1], [0, 1], "r--")
     plt.xlim([-0.1, 1.1])
     plt.ylim([-0.1, 1.1])
-    plt.xlabel('False Positive Rate', size=14)
-    plt.ylabel('True Positive Rate', size=14)
-    plt.legend(loc='lower right')
+    plt.xlabel("False Positive Rate", size=14)
+    plt.ylabel("True Positive Rate", size=14)
+    plt.legend(loc="lower right")
     output_dir.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_dir / "ROC_curve.png")
     plt.close()

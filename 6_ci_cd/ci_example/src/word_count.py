@@ -5,7 +5,7 @@ def word_count_handler(event, context):
     """
     if event == {}:
         return {"error": "no body"}
-    
+
     msg = event["body"]
 
     n_words = len(msg.split())

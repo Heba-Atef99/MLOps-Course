@@ -1,4 +1,5 @@
-from locust import HttpUser, task, between
+from locust import HttpUser, between, task
+
 
 class LoanApplicantUser(HttpUser):
     wait_time = between(1, 5)
@@ -14,7 +15,7 @@ class LoanApplicantUser(HttpUser):
         "Residential_Assets_Value": 6500000,
         "Commercial_Assets_Value": 10000000,
         "Luxury_Assets_Value": 15700000,
-        "Bank_Asset_Value": 7300000
+        "Bank_Asset_Value": 7300000,
     }
     headers = {"Content-Type": "application/json"}
 
@@ -25,6 +26,7 @@ class LoanApplicantUser(HttpUser):
     @task
     def visit_index(self):
         self.client.get("/")
+
 
 class LoanApplicantUser2(HttpUser):
     wait_time = between(1, 5)
