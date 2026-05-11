@@ -1,28 +1,24 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bookworm
 
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade pip 
-#copy to code directory
-COPY . /code 
+RUN pip install --upgrade pip
 
-#set permissions
+WORKDIR /code
+
+COPY . /code
 
 RUN chmod +x /code
 
-RUN pip install --no-cache-dir --upgrade -r code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+RUN pip install --no-cache-dir -e .
 
 EXPOSE 8005
 
-WORKDIR /code
-
 ENV PYTHONPATH "${PYTHONPATH}:/code"
 
-CMD pip install -e .
-
-CMD ["python","prediction_model/training_pipeline.py"]
-WORKDIR /code
-CMD ["python","main.py"]
+CMD ["python", "main.py"]
