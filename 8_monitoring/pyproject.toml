@@ -1,0 +1,39 @@
+[project]
+name = "iris-monitoring-demo"
+version = "0.1.0"
+description = "MLOps demo: model monitoring with Axiom, PSI drift detection, and Page-Hinkley change detection"
+requires-python = ">=3.11"
+dependencies = [
+    "litestar[standard]",
+    "scikit-learn",
+    "skops",
+    "hyperdx-opentelemetry",
+    "python-dotenv",
+    "axiom-py",
+    "requests",
+    "numpy",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+    "pyright",
+    "pre-commit",
+    "pytest-cov",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "training"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
