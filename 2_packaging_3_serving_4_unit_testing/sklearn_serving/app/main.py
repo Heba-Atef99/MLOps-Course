@@ -31,7 +31,7 @@ def setup_hyperdx() -> None:
                 logger.addHandler(handler)
                 break
 
-        logger.info("HyperDX telemetry configured")
+        logger.info("HyperDX telemetry configured (logs + traces)")
     except ImportError:
         logger.warning("hyperdx-opentelemetry not installed: remote logging disabled")
     except Exception:
@@ -40,6 +40,18 @@ def setup_hyperdx() -> None:
 
 def on_startup(app: Litestar) -> None:
     setup_hyperdx()
+
+    try:
+        from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+        from opentelemetry.trace import get_tracer_provider
+
+        app.asgi_handler = OpenTelemetryMiddleware(
+            app.asgi_handler,
+            tracer_provider=get_tracer_provider(),
+        )
+        logger.info("ASGI tracing middleware enabled")
+    except ImportError:
+        logger.warning("opentelemetry-instrumentation-asgi not installed: tracing disabled")
 
     logger.info("Starting Loan Approval Serving Demo")
     logger.debug("Model path: %s", MODEL_PATH)

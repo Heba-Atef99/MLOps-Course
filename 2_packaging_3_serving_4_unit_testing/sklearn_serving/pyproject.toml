@@ -10,6 +10,7 @@ dependencies = [
     "pandas",
     "hyperdx-opentelemetry",
     "python-dotenv",
+    "opentelemetry-instrumentation-asgi>=0.51b0",
 ]
 
 [dependency-groups]
