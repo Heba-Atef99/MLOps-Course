@@ -1,0 +1,26 @@
+meta {
+  name: Predict Rejected
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/predict
+  body: json
+}
+
+body:json {
+  {
+    "no_of_dependents": 0,
+    "education": "Not Graduate",
+    "self_employed": "Yes",
+    "income_annum": 4100000,
+    "loan_amount": 12200000,
+    "loan_term": 8,
+    "cibil_score": 417,
+    "residential_assets_value": 2700000,
+    "commercial_assets_value": 2200000,
+    "luxury_assets_value": 8800000,
+    "bank_asset_value": 3300000
+  }
+}
