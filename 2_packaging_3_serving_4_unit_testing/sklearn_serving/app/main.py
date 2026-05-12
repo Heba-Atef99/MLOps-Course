@@ -20,9 +20,17 @@ MODEL_PATH = Path(__file__).resolve().parent.parent / "model" / "loan_model.skop
 
 def setup_hyperdx() -> None:
     try:
+        from opentelemetry.sdk._logs import LoggingHandler
+
         from hyperdx.opentelemetry import configure_opentelemetry
 
         configure_opentelemetry()
+
+        for handler in logging.getLogger().handlers:
+            if isinstance(handler, LoggingHandler):
+                logger.addHandler(handler)
+                break
+
         logger.info("HyperDX telemetry configured")
     except ImportError:
         logger.warning("hyperdx-opentelemetry not installed: remote logging disabled")
