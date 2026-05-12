@@ -45,7 +45,7 @@ def on_startup(app: Litestar) -> None:
         from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
         from opentelemetry.trace import get_tracer_provider
 
-        app.asgi_handler = OpenTelemetryMiddleware(
+        app.asgi_handler = OpenTelemetryMiddleware(  # type: ignore[assignment]
             app.asgi_handler,
             tracer_provider=get_tracer_provider(),
         )
