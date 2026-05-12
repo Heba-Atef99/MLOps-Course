@@ -3,17 +3,23 @@ from dataclasses import dataclass
 
 @dataclass
 class PredictRequest:
-    sepal_length: float
-    sepal_width: float
-    petal_length: float
-    petal_width: float
+    no_of_dependents: int
+    education: str
+    self_employed: str
+    income_annum: float
+    loan_amount: float
+    loan_term: int
+    cibil_score: int
+    residential_assets_value: float
+    commercial_assets_value: float
+    luxury_assets_value: float
+    bank_asset_value: float
 
 
 @dataclass
 class PredictResponse:
-    class_name: str
-    class_index: int
-    probabilities: dict[str, float]
+    loan_approved: bool
+    approval_probability: float
 
 
 @dataclass

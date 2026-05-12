@@ -2,6 +2,20 @@ from litestar.testing import TestClient
 
 from app.main import app
 
+SAMPLE_REQUEST = {
+    "no_of_dependents": 2,
+    "education": "Graduate",
+    "self_employed": "No",
+    "income_annum": 9600000,
+    "loan_amount": 29900000,
+    "loan_term": 12,
+    "cibil_score": 778,
+    "residential_assets_value": 2400000,
+    "commercial_assets_value": 17600000,
+    "luxury_assets_value": 22700000,
+    "bank_asset_value": 8000000,
+}
+
 
 def test_home_endpoint():
     with TestClient(app=app) as client:
@@ -23,26 +37,17 @@ def test_health_endpoint():
 
 def test_predict_endpoint():
     with TestClient(app=app) as client:
-        response = client.post(
-            "/predict",
-            json={
-                "sepal_length": 5.1,
-                "sepal_width": 3.5,
-                "petal_length": 1.4,
-                "petal_width": 0.2,
-            },
-        )
+        response = client.post("/predict", json=SAMPLE_REQUEST)
         assert response.status_code == 201
         data = response.json()
-        assert data["class_name"] in ["setosa", "versicolor", "virginica"]
-        assert "class_index" in data
-        assert "probabilities" in data
+        assert "loan_approved" in data
+        assert "approval_probability" in data
 
 
 def test_predict_invalid_input():
     with TestClient(app=app) as client:
         response = client.post(
             "/predict",
-            json={"sepal_length": "not_a_number"},
+            json={"cibil_score": "not_a_number"},
         )
         assert response.status_code == 400

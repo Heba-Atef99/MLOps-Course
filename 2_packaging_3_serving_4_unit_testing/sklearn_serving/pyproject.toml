@@ -1,12 +1,13 @@
 [project]
-name = "iris-serving-demo"
+name = "loan-serving-demo"
 version = "0.1.0"
-description = "MLOps demo: model packaging (skops), serving (Litestar), logging (HyperDX), and unit testing"
+description = "MLOps demo: loan approval prediction with skops, Litestar, HyperDX, and unit testing"
 requires-python = ">=3.11"
 dependencies = [
     "litestar[standard]",
     "scikit-learn",
     "skops",
+    "pandas",
     "hyperdx-opentelemetry",
     "python-dotenv",
 ]

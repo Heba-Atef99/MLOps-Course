@@ -15,7 +15,7 @@ load_dotenv()
 
 logger = logging.getLogger("app")
 
-MODEL_PATH = Path(__file__).resolve().parent.parent / "model" / "iris_model.skops"
+MODEL_PATH = Path(__file__).resolve().parent.parent / "model" / "loan_model.skops"
 
 
 def setup_hyperdx() -> None:
@@ -25,7 +25,7 @@ def setup_hyperdx() -> None:
         configure_opentelemetry()
         logger.info("HyperDX telemetry configured")
     except ImportError:
-        logger.warning("hyperdx-opentelemetry not installed — remote logging disabled")
+        logger.warning("hyperdx-opentelemetry not installed: remote logging disabled")
     except Exception:
         logger.warning("Failed to configure HyperDX", exc_info=True)
 
@@ -33,15 +33,15 @@ def setup_hyperdx() -> None:
 def on_startup(app: Litestar) -> None:
     setup_hyperdx()
 
-    logger.info("Starting Iris Serving Demo")
+    logger.info("Starting Loan Approval Serving Demo")
     logger.debug("Model path: %s", MODEL_PATH)
 
     try:
         app.state.model = load_model(MODEL_PATH)
-        logger.info("Model loaded successfully from %s", MODEL_PATH)
+        logger.info("Model loaded from %s", MODEL_PATH)
     except FileNotFoundError:
         logger.critical(
-            "Model file not found at %s — run 'uv run python training/train.py' first",
+            "Model not found at %s: run 'uv run python training/train.py' first",
             MODEL_PATH,
         )
         raise
@@ -54,11 +54,11 @@ def on_startup(app: Litestar) -> None:
 async def home() -> dict[str, object]:
     logger.debug("Home endpoint accessed")
     return {
-        "message": "Welcome to the Iris Serving Demo",
+        "message": "Loan Approval Prediction API",
         "endpoints": {
             "GET /": "This page",
             "GET /health": "Health check",
-            "POST /predict": "Make a prediction",
+            "POST /predict": "Predict loan approval",
         },
     }
 
@@ -69,7 +69,7 @@ async def health_check(state: State) -> HealthResponse:
     status = "healthy" if model_loaded else "unhealthy"
 
     if not model_loaded:
-        logger.warning("Health check failed — model not loaded")
+        logger.warning("Health check failed: model not loaded")
     else:
         logger.info("Health check: %s", status)
 
@@ -79,25 +79,31 @@ async def health_check(state: State) -> HealthResponse:
 @post("/predict")
 async def predict_endpoint(data: PredictRequest, state: State) -> PredictResponse:
     logger.info(
-        "Prediction requested — features: [%.2f, %.2f, %.2f, %.2f]",
-        data.sepal_length,
-        data.sepal_width,
-        data.petal_length,
-        data.petal_width,
+        "Prediction requested: cibil=%d income=%d loan=%d",
+        data.cibil_score,
+        data.income_annum,
+        data.loan_amount,
     )
 
     model = getattr(state, "model", None)
     if model is None:
-        logger.error("Prediction failed — model not loaded")
+        logger.error("Prediction failed: model not loaded")
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     start = time.perf_counter()
-    features = [
-        data.sepal_length,
-        data.sepal_width,
-        data.petal_length,
-        data.petal_width,
-    ]
+    features = {
+        "no_of_dependents": data.no_of_dependents,
+        "education": data.education,
+        "self_employed": data.self_employed,
+        "income_annum": data.income_annum,
+        "loan_amount": data.loan_amount,
+        "loan_term": data.loan_term,
+        "cibil_score": data.cibil_score,
+        "residential_assets_value": data.residential_assets_value,
+        "commercial_assets_value": data.commercial_assets_value,
+        "luxury_assets_value": data.luxury_assets_value,
+        "bank_asset_value": data.bank_asset_value,
+    }
     result = predict(model, features)
     elapsed_ms = (time.perf_counter() - start) * 1000
 
@@ -107,15 +113,14 @@ async def predict_endpoint(data: PredictRequest, state: State) -> PredictRespons
         logger.debug("Inference completed in %.2fms", elapsed_ms)
 
     logger.info(
-        "Prediction: %s (confidence: %.1f%%)",
-        result["class_name"],
-        max(result["probabilities"].values()) * 100,
+        "Prediction: approved=%s probability=%.2f%%",
+        result["loan_approved"],
+        result["approval_probability"] * 100,
     )
 
     return PredictResponse(
-        class_name=result["class_name"],
-        class_index=result["class_index"],
-        probabilities=result["probabilities"],
+        loan_approved=result["loan_approved"],
+        approval_probability=result["approval_probability"],
     )
 
 

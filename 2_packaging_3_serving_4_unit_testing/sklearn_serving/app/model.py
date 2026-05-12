@@ -1,27 +1,35 @@
 from pathlib import Path
 
-import numpy as np
+import pandas as pd
 import skops.io as sio
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
 
-IRIS_CLASS_NAMES = ["setosa", "versicolor", "virginica"]
+PRED_FEATURES = [
+    "no_of_dependents",
+    "education",
+    "self_employed",
+    "income_annum",
+    "loan_amount",
+    "loan_term",
+    "cibil_score",
+    "residential_assets_value",
+    "commercial_assets_value",
+    "luxury_assets_value",
+    "bank_asset_value",
+]
 
 
-def load_model(path: Path) -> RandomForestClassifier:
+def load_model(path: Path) -> Pipeline:
     unknown_types = sio.get_untrusted_types(file=path)
     return sio.load(path, trusted=unknown_types)
 
 
-def predict(model: RandomForestClassifier, features: list[float]) -> dict:
-    X = np.array(features).reshape(1, -1)
-    class_index = int(model.predict(X)[0])
-    probabilities = model.predict_proba(X)[0]
+def predict(model: Pipeline, features: dict) -> dict:
+    df = pd.DataFrame([features])
+    prediction = int(model.predict(df)[0])
+    probability = float(model.predict_proba(df)[0][1])
 
     return {
-        "class_name": IRIS_CLASS_NAMES[class_index],
-        "class_index": class_index,
-        "probabilities": {
-            name: round(float(prob), 4)
-            for name, prob in zip(IRIS_CLASS_NAMES, probabilities, strict=True)
-        },
+        "loan_approved": prediction == 1,
+        "approval_probability": round(probability, 4),
     }
