@@ -1,6 +1,6 @@
-# Iris Serving Demo: sklearn + Litestar
+# Loan Approval Serving Demo: sklearn + Litestar
 
-A minimal MLOps demo: train an Iris classifier, package it safely, serve it via API, log everything, and test it.
+A minimal MLOps demo: train a loan approval classifier, package it safely, serve it via API, log everything, and test it.
 
 ## Quick Start
 
@@ -13,13 +13,13 @@ uv run pytest                    # run tests
 
 **API docs (while server is running):**
 
-| URL | Description |
-| --- | --- |
-| http://localhost:8000/schema/swagger | Swagger UI |
-| http://localhost:8000/schema/redoc | ReDoc |
-| http://localhost:8000/schema/rapidoc | RapiDoc |
-| http://localhost:8000/schema/elements | Stoplight Elements |
-| http://localhost:8000/schema/openapi.json | Raw OpenAPI JSON |
+| URL                                       | Description        |
+| ----------------------------------------- | ------------------ |
+| http://localhost:8000/schema/swagger      | Swagger UI         |
+| http://localhost:8000/schema/redoc        | ReDoc              |
+| http://localhost:8000/schema/rapidoc      | RapiDoc            |
+| http://localhost:8000/schema/elements     | Stoplight Elements |
+| http://localhost:8000/schema/openapi.json | Raw OpenAPI JSON   |
 
 ## Project Structure
 
@@ -39,11 +39,11 @@ sklearn_serving/
 
 ## Endpoints
 
-| Method | Path       | Description             |
-| ------ | ---------- | ----------------------- |
-| GET    | `/`        | Welcome + endpoint list |
-| GET    | `/health`  | Health check            |
-| POST   | `/predict` | Iris class prediction   |
+| Method | Path       | Description              |
+| ------ | ---------- | ------------------------ |
+| GET    | `/`        | Welcome + endpoint list  |
+| GET    | `/health`  | Health check             |
+| POST   | `/predict` | Loan approval prediction |
 
 ## Lessons Learned & Concepts Applied
 
