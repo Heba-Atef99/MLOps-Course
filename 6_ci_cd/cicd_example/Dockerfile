@@ -11,7 +11,7 @@ WORKDIR /code
 
 COPY . /code 
 
-RUN pip install --no-cache-dir --upgrade -r code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 EXPOSE 8005
 
