@@ -50,7 +50,7 @@ This is the "Immediate Feedback" pattern: the correct answer arrives seconds aft
 ├── training/
 │   └── train.py             # Train on synthetic CTR data (82% accuracy)
 ├── scripts/
-│   ├── generate_traffic.py  # Send normal + drifted traffic with feedback
+│   ├── generate_traffic.py  # Send stable, data drift, or concept drift traffic
 │   ├── compute_drift.py     # PSI vs training baseline, Page-Hinkley on signals
 │   ├── create_dashboard.py  # Create/update Axiom dashboard (idempotent)
 │   └── create_monitors.py   # Create Axiom alerts
@@ -100,8 +100,10 @@ Applied to:
 # 1. Start the server
 uv run uvicorn app.main:app --reload
 
-# 2. Generate traffic (100 normal + 50 drifted, with feedback)
-uv run python scripts/generate_traffic.py
+# 2. Generate traffic with feedback
+uv run python scripts/generate_traffic.py stable
+uv run python scripts/generate_traffic.py data-drift
+uv run python scripts/generate_traffic.py concept-drift
 
 # 3. Compute drift metrics against the training baseline
 uv run python scripts/compute_drift.py
@@ -115,9 +117,17 @@ uv run python scripts/create_monitors.py
 
 Axiom dashboard: https://app.axiom.co/iti-ihxq/dashboards/409eed9e-18e5-443e-a685-760acf18ecfc
 
-## Drifted Traffic
+## Traffic Scenarios
 
-The traffic generator simulates drift by shifting feature distributions:
+The traffic generator has three scenarios:
+
+| Scenario        | Command                                                | Expected detector          |
+| --------------- | ------------------------------------------------------ | -------------------------- |
+| Stable          | `uv run python scripts/generate_traffic.py stable`     | No drift                   |
+| Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
+| Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
+
+Data drift shifts feature distributions while keeping the original click behavior:
 
 | Feature              | Normal         | Drifted          |
 | -------------------- | -------------- | ---------------- |
@@ -127,9 +137,10 @@ The traffic generator simulates drift by shifting feature distributions:
 | user_age             | 18-65          | 55-65 (older)    |
 | session_duration_sec | 30-1200        | 1200-1800        |
 | page_views           | 1-30           | 1-3              |
-| simulated CTR        | ~15-25%        | ~3%              |
 
-This causes the model to encounter out-of-distribution inputs, lowering confidence and increasing error rate, which PSI and Page-Hinkley detect.
+Concept drift keeps the same feature ranges as stable traffic but changes the click behavior. That means the input distribution can still look normal while feedback accuracy, CTR, and error behavior change, which is what Page-Hinkley is meant to catch.
+
+For the clearest Page-Hinkley demo, send stable traffic first so the detector has a normal feedback baseline, then send concept drift traffic.
 
 ## Axiom Monitors
 
@@ -147,5 +158,5 @@ Alerts sent to email via Axiom notifier.
 - **PSI for features, Page-Hinkley for signals**: use the right tool for the right data
 - **Immediate feedback closes the loop**: CTR lets us monitor actual accuracy, not just proxies
 - **Dashboard scripts should be idempotent**: use a fixed UID + `overwrite: True` to avoid duplicates
-- **Drifted traffic is easy to simulate**: shift feature ranges and watch PSI light up
-- **Page-Hinkley needs time**: it tracks cumulative deviation over hours/days, not minutes. In production with weeks of data, it catches slow model degradation that PSI misses
+- **Data drift is easy to simulate**: shift feature ranges and watch PSI light up
+- **Concept drift can happen without feature drift**: keep input ranges stable, change feedback behavior, and watch Page-Hinkley light up

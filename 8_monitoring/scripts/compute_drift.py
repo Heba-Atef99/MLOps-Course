@@ -2,7 +2,8 @@
 
 Page-Hinkley state (cumsum, min_cumsum, mean, n) is persisted to Axiom as
 drift_ph_state events. Each run loads the last state, processes only new
-hourly buckets since the last run, updates the state, and ingests it back.
+raw prediction/feedback events since the last run, updates the state, and ingests
+it back.
 
 Usage: uv run python scripts/compute_drift.py
 """
@@ -192,7 +193,7 @@ def fetch_prediction_data(time_filter: str) -> list[dict]:
     return query_axiom(apl)
 
 
-def fetch_hourly_since(name: str, last_timestamp: str) -> list[dict]:
+def fetch_signal_since(name: str, last_timestamp: str) -> list[dict]:
     ds = AXIOM_DATASET
     time_filter = (
         f"| where _time > todatetime('{last_timestamp}')"
@@ -203,18 +204,18 @@ def fetch_hourly_since(name: str, last_timestamp: str) -> list[dict]:
     agg_map = {
         "error_rate": (
             f"['{ds}'] | where event_type == 'feedback' {time_filter} "
-            f"| summarize val = 1.0 - avg(iff(correct, 1.0, 0.0)) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = iff(correct, 0.0, 1.0) "
+            f"| order by _time asc"
         ),
         "confidence": (
             f"['{ds}'] | where event_type == 'prediction' {time_filter} "
-            f"| summarize val = avg(confidence) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = confidence "
+            f"| order by _time asc"
         ),
         "click_through_rate": (
             f"['{ds}'] | where event_type == 'feedback' {time_filter} "
-            f"| summarize val = avg(iff(actual_click, 1.0, 0.0)) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = iff(actual_click, 1.0, 0.0) "
+            f"| order by _time asc"
         ),
     }
 
@@ -307,9 +308,9 @@ def main() -> None:
         else:
             print(f"    {name}: no previous state, starting fresh")
 
-        hourly = fetch_hourly_since(name, last_ts)
+        signal_rows = fetch_signal_since(name, last_ts)
 
-        if not hourly:
+        if not signal_rows:
             print(f"    {name}: no new data since last run")
             if prev_state:
                 ph_value = round(prev_state["cumsum"] - prev_state["min_cumsum"], 6)
@@ -328,18 +329,18 @@ def main() -> None:
             continue
 
         new_values = np.array(
-            [h["val"] for h in hourly if h.get("val") is not None],
+            [row["val"] for row in signal_rows if row.get("val") is not None],
             dtype=float,
         )
         new_timestamps = [
-            h.get("_time", "") for h in hourly if h.get("val") is not None
+            row.get("_time", "") for row in signal_rows if row.get("val") is not None
         ]
         latest_ts = new_timestamps[-1] if new_timestamps else last_ts
 
         updated = update_ph_incremental(prev_state, new_values)
         status = "DRIFT" if updated["drift_detected"] else "stable"
         print(
-            f"    {name}: +{len(new_values)} buckets, "
+            f"    {name}: +{len(new_values)} events, "
             f"PH={updated['ph_value']:.4f} ({status}), "
             f"n={updated['n']}"
         )
