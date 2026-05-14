@@ -123,7 +123,7 @@ The traffic generator has three scenarios:
 
 | Scenario        | Command                                                | Expected detector          |
 | --------------- | ------------------------------------------------------ | -------------------------- |
-| Stable          | `uv run python scripts/generate_traffic.py stable`     | No drift                   |
+| Stable          | `uv run python scripts/generate_traffic.py stable`     | Training-like baseline     |
 | Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
 | Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
 
@@ -139,6 +139,8 @@ Data drift shifts feature distributions while keeping the original click behavio
 | user_age             | 18-65          | 55-65 (older)    |
 | session_duration_sec | 30-1200        | 1200-1800        |
 | page_views           | 1-30           | 1-3              |
+
+Stable traffic is sampled from the saved training baseline, so PSI should stay quiet unless the training baseline itself changes.
 
 Concept drift keeps the same feature ranges as stable traffic but changes the click behavior. That means the input distribution can still look normal while feedback accuracy, CTR, and error behavior change, which is what Page-Hinkley is meant to catch.
 

@@ -8,9 +8,12 @@ Usage:
 """
 
 import argparse
+import csv
+import os
 import random
 import time
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -18,6 +21,10 @@ import requests
 API_URL = "http://localhost:8000"
 FeatureRanges = Mapping[str, tuple[int | float, int | float]]
 DEFAULT_COUNT = 50
+BASE_DIR = Path(__file__).resolve().parent.parent
+TRAINING_BASELINE_PATH = Path(
+    os.getenv("TRAINING_BASELINE_PATH", BASE_DIR / "data" / "training_baseline.csv")
+)
 
 STABLE_RANGES = {
     "hour_of_day": (8, 22),
@@ -26,6 +33,15 @@ STABLE_RANGES = {
     "user_age": (18, 65),
     "session_duration_sec": (30, 1200),
     "page_views": (1, 30),
+}
+
+STABLE_FALLBACK_RANGES = {
+    "hour_of_day": (0, 23),
+    "device_type": (0, 2),
+    "ad_position": (1, 5),
+    "user_age": (18, 65),
+    "session_duration_sec": (0, 1800),
+    "page_views": (1, 50),
 }
 
 DATA_DRIFT_RANGES = {
@@ -78,6 +94,32 @@ def random_sample(ranges: FeatureRanges) -> dict[str, Any]:
     return sample
 
 
+def load_training_baseline_rows() -> list[dict[str, Any]]:
+    if not TRAINING_BASELINE_PATH.exists():
+        return []
+
+    with TRAINING_BASELINE_PATH.open(newline="") as f:
+        reader = csv.DictReader(f)
+        return [
+            {
+                "hour_of_day": int(row["hour_of_day"]),
+                "device_type": int(row["device_type"]),
+                "ad_position": int(row["ad_position"]),
+                "user_age": int(row["user_age"]),
+                "session_duration_sec": float(row["session_duration_sec"]),
+                "page_views": int(row["page_views"]),
+            }
+            for row in reader
+        ]
+
+
+def sample_stable_row() -> dict[str, Any]:
+    baseline_rows = load_training_baseline_rows()
+    if baseline_rows:
+        return random.choice(baseline_rows)
+    return random_sample(STABLE_FALLBACK_RANGES)
+
+
 def simulate_click(
     sample: dict[str, Any],
     probability_fn: Callable[[dict[str, Any]], float],
@@ -107,10 +149,11 @@ def send_feedback(prediction_id: str, actual_click: bool) -> bool:
 
 def generate(
     label: str,
-    ranges: FeatureRanges,
+    ranges: FeatureRanges | None,
     probability_fn: Callable[[dict[str, Any]], float],
     count: int,
     delay: float,
+    sample_fn: Callable[[], dict[str, Any]] | None = None,
 ) -> None:
     print(f"\nSending {count} {label} requests (delay={delay}s)...")
     ok = 0
@@ -118,7 +161,7 @@ def generate(
     clicks = 0
 
     for i in range(count):
-        sample = random_sample(ranges)
+        sample = sample_fn() if sample_fn else random_sample(ranges or {})
         actual_click = simulate_click(sample, probability_fn)
         prediction = send_predict(sample)
         if prediction is None:
@@ -147,10 +190,11 @@ def generate(
 def generate_stable(count: int, delay: float) -> None:
     generate(
         label="stable",
-        ranges=STABLE_RANGES,
+        ranges=None,
         probability_fn=stable_click_probability,
         count=count,
         delay=delay,
+        sample_fn=sample_stable_row,
     )
 
 

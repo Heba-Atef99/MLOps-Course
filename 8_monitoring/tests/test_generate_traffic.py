@@ -26,6 +26,67 @@ def test_data_drift_ranges_shift_features_without_changing_click_function():
     assert generate_traffic.DATA_DRIFT_RANGES["user_age"] == (55, 65)
 
 
+def test_load_training_baseline_rows_reads_csv(tmp_path, monkeypatch):
+    baseline = tmp_path / "training_baseline.csv"
+    baseline.write_text(
+        "hour_of_day,device_type,ad_position,user_age,session_duration_sec,page_views\n"
+        "10,1,2,28,450.0,12\n"
+        "21,0,5,60,1200.0,3\n"
+    )
+    monkeypatch.setattr(generate_traffic, "TRAINING_BASELINE_PATH", baseline)
+
+    rows = generate_traffic.load_training_baseline_rows()
+
+    assert rows == [
+        {
+            "hour_of_day": 10,
+            "device_type": 1,
+            "ad_position": 2,
+            "user_age": 28,
+            "session_duration_sec": 450.0,
+            "page_views": 12,
+        },
+        {
+            "hour_of_day": 21,
+            "device_type": 0,
+            "ad_position": 5,
+            "user_age": 60,
+            "session_duration_sec": 1200.0,
+            "page_views": 3,
+        },
+    ]
+
+
+def test_sample_stable_row_uses_training_baseline(monkeypatch):
+    monkeypatch.setattr(
+        generate_traffic,
+        "load_training_baseline_rows",
+        lambda: [
+            {
+                "hour_of_day": 9,
+                "device_type": 1,
+                "ad_position": 2,
+                "user_age": 28,
+                "session_duration_sec": 450.0,
+                "page_views": 12,
+            }
+        ],
+    )
+
+    assert generate_traffic.sample_stable_row()["hour_of_day"] == 9
+
+
+def test_sample_stable_row_falls_back_when_baseline_missing(monkeypatch):
+    monkeypatch.setattr(generate_traffic, "load_training_baseline_rows", lambda: [])
+    monkeypatch.setattr(generate_traffic.random, "randint", lambda lo, hi: lo)
+    monkeypatch.setattr(generate_traffic.random, "uniform", lambda lo, hi: hi)
+
+    sample = generate_traffic.sample_stable_row()
+
+    assert sample["hour_of_day"] == 0
+    assert sample["page_views"] == 1
+
+
 def test_concept_drift_changes_click_probability_on_stable_features():
     sample = {
         "hour_of_day": 5,
@@ -141,8 +202,8 @@ def test_generate_skips_failed_predictions(monkeypatch, capsys):
 def test_generate_wrapper_functions_call_generate(monkeypatch):
     calls = []
 
-    def fake_generate(label, ranges, probability_fn, count, delay):
-        calls.append((label, ranges, probability_fn, count, delay))
+    def fake_generate(label, ranges, probability_fn, count, delay, sample_fn=None):
+        calls.append((label, ranges, probability_fn, count, delay, sample_fn))
 
     monkeypatch.setattr(generate_traffic, "generate", fake_generate)
 
@@ -153,6 +214,7 @@ def test_generate_wrapper_functions_call_generate(monkeypatch):
     assert calls[0][0] == "stable"
     assert calls[1][0] == "data drift"
     assert calls[2][0] == "concept drift"
+    assert calls[0][5] == generate_traffic.sample_stable_row
 
 
 def test_main_dispatches_selected_scenario(monkeypatch):
