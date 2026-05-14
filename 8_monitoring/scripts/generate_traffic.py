@@ -241,11 +241,11 @@ def main() -> None:
     elif args.scenario == "data-drift":
         generate_data_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
     elif args.scenario == "concept-drift":
-        generate_concept_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
+        generate_concept_drift(count=args.count or 100, delay=args.delay)
     else:
         generate_stable(count=args.count or DEFAULT_COUNT, delay=args.delay)
         generate_data_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
-        generate_concept_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
+        generate_concept_drift(count=args.count or 100, delay=args.delay)
 
     print("\nTraffic generation complete.")
     print("Run 'uv run python scripts/compute_drift.py' to analyze drift.")
