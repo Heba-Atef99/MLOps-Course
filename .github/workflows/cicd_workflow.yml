@@ -3,7 +3,7 @@ name: Build, Test, and Deploy to AWS EC2
 on:
   push:
     branches:
-      - refactor/cicd-workflows
+      - refactor/cicd-workflows2
   # pull_request:
   #   types:
   #     - closed
