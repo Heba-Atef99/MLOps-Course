@@ -20,6 +20,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAINING_BASELINE_PATH = os.getenv(
+    "TRAINING_BASELINE_PATH",
+    os.path.join(BASE_DIR, "data", "training_baseline.csv"),
+)
+
 AXIOM_TOKEN = os.getenv("AXIOM_TOKEN")
 AXIOM_ORG_ID = os.getenv("AXIOM_ORG_ID")
 AXIOM_DATASET = os.getenv("AXIOM_DATASET", "mlops")
@@ -31,6 +37,14 @@ NUMERIC_FEATURES = {
     "feature_user_age": [18, 25, 35, 45, 55, 65],
     "feature_session_duration_sec": [0, 300, 600, 900, 1200, 1500, 1800],
     "feature_page_views": [1, 5, 10, 20, 30, 50],
+}
+
+BASELINE_COLUMNS = {
+    "feature_hour_of_day": "hour_of_day",
+    "feature_ad_position": "ad_position",
+    "feature_user_age": "user_age",
+    "feature_session_duration_sec": "session_duration_sec",
+    "feature_page_views": "page_views",
 }
 
 PH_DELTA = 0.005
@@ -90,6 +104,22 @@ def compute_psi(reference: np.ndarray, current: np.ndarray, bins: list) -> float
 
     psi = float(np.sum((cur_pct - ref_pct) * np.log(cur_pct / ref_pct)))
     return round(psi, 6)
+
+
+def load_training_baseline() -> dict[str, np.ndarray]:
+    if not os.path.exists(TRAINING_BASELINE_PATH):
+        print(
+            "Error: training baseline not found at "
+            f"{TRAINING_BASELINE_PATH}. Run 'uv run python training/train.py'.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    data = np.genfromtxt(TRAINING_BASELINE_PATH, delimiter=",", names=True)
+    return {
+        axiom_feature: np.asarray(data[baseline_column], dtype=float)
+        for axiom_feature, baseline_column in BASELINE_COLUMNS.items()
+    }
 
 
 # --- Page-Hinkley with persistent state ---
@@ -219,26 +249,26 @@ def main() -> None:
         sys.exit(1)
 
     win = CURRENT_WINDOW_MINUTES
-    ref = REFERENCE_LOOKBACK_DAYS
-    print(f"Computing drift (reference: >{win}m ago, current: last {win}m)")
+    print(
+        "Computing drift "
+        f"(PSI baseline: training data, current: last {win}m production)"
+    )
 
-    ref_filter = f"where _time > ago({ref}d) and _time < ago({win}m)"
     cur_filter = f"where _time > ago({win}m)"
 
-    ref_data = fetch_prediction_data(ref_filter)
+    training_baseline = load_training_baseline()
     cur_data = fetch_prediction_data(cur_filter)
 
     now = datetime.now(UTC).isoformat()
     events: list[dict] = []
 
-    if ref_data and cur_data:
-        print(f"  Reference: {len(ref_data)} events, Current: {len(cur_data)} events")
-        print("\n  PSI (features):")
+    if cur_data:
+        baseline_count = len(next(iter(training_baseline.values()), []))
+        print(f"  Training baseline: {baseline_count} rows")
+        print(f"  Current production: {len(cur_data)} events")
+        print("\n  PSI (training baseline vs current production):")
         for feature, bins in NUMERIC_FEATURES.items():
-            ref_vals = np.array(
-                [r[feature] for r in ref_data if r.get(feature) is not None],
-                dtype=float,
-            )
+            ref_vals = training_baseline[feature]
             cur_vals = np.array(
                 [r[feature] for r in cur_data if r.get(feature) is not None],
                 dtype=float,
@@ -255,12 +285,13 @@ def main() -> None:
                     "feature": feature,
                     "psi": psi,
                     "level": level,
+                    "baseline": "training",
                     "ref_count": len(ref_vals),
                     "cur_count": len(cur_vals),
                 }
             )
     else:
-        print("  Insufficient data for PSI (need both reference and current)")
+        print("  Insufficient data for PSI (need current production predictions)")
 
     print("\n  Page-Hinkley (incremental):")
     ph_signals = ["error_rate", "confidence", "click_through_rate"]

@@ -10,7 +10,7 @@ Unlike static datasets, CTR gives us **immediate feedback**: we predict "will th
 
 ```bash
 uv sync
-uv run python training/train.py     # train CTR model (synthetic data)
+uv run python training/train.py      # train CTR model + save training baseline
 cp .env.example .env                 # fill in Axiom credentials
 uv run uvicorn app.main:app --reload # start server
 ```
@@ -51,11 +51,12 @@ This is the "Immediate Feedback" pattern: the correct answer arrives seconds aft
 │   └── train.py             # Train on synthetic CTR data (82% accuracy)
 ├── scripts/
 │   ├── generate_traffic.py  # Send normal + drifted traffic with feedback
-│   ├── compute_drift.py     # PSI on features, Page-Hinkley on error rate
+│   ├── compute_drift.py     # PSI vs training baseline, Page-Hinkley on signals
 │   ├── create_dashboard.py  # Create/update Axiom dashboard (idempotent)
 │   └── create_monitors.py   # Create Axiom alerts
 ├── tests/                   # 9 tests (predict, feedback, model, edge cases)
 ├── model/
+├── data/
 ├── pyproject.toml
 └── .env.example
 ```
@@ -66,7 +67,7 @@ We use two complementary techniques, each applied where it fits best:
 
 ### PSI (Population Stability Index) on input features
 
-Compares the distribution of a feature between a reference window (old data) and a current window (recent data). Catches sudden distribution shifts in model inputs.
+Compares the distribution of each production feature against the training baseline saved by `training/train.py` at `data/training_baseline.csv`. This catches cases where the model is receiving inputs that no longer look like the data it learned from.
 
 Applied to: `hour_of_day`, `ad_position`, `user_age`, `session_duration_sec`, `page_views`
 
@@ -102,7 +103,7 @@ uv run uvicorn app.main:app --reload
 # 2. Generate traffic (100 normal + 50 drifted, with feedback)
 uv run python scripts/generate_traffic.py
 
-# 3. Compute drift metrics (ingests results back to Axiom)
+# 3. Compute drift metrics against the training baseline
 uv run python scripts/compute_drift.py
 
 # 4. Create/update Axiom dashboard (idempotent, same UID every time)
