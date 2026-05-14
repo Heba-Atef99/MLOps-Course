@@ -203,7 +203,7 @@ def test_main_dispatches_all_scenarios(monkeypatch):
     generate_traffic.main()
 
     assert called == [
-        ("stable", 100, 0.0),
-        ("data", 100, 0.0),
-        ("concept", 400, 0.0),
+        ("stable", 50, 0.0),
+        ("data", 50, 0.0),
+        ("concept", 50, 0.0),
     ]

@@ -17,6 +17,7 @@ import requests
 
 API_URL = "http://localhost:8000"
 FeatureRanges = Mapping[str, tuple[int | float, int | float]]
+DEFAULT_COUNT = 50
 
 STABLE_RANGES = {
     "hour_of_day": (8, 22),
@@ -191,15 +192,15 @@ def main() -> None:
     print("=====================")
 
     if args.scenario == "stable":
-        generate_stable(count=args.count or 100, delay=args.delay)
+        generate_stable(count=args.count or DEFAULT_COUNT, delay=args.delay)
     elif args.scenario == "data-drift":
-        generate_data_drift(count=args.count or 100, delay=args.delay)
+        generate_data_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
     elif args.scenario == "concept-drift":
-        generate_concept_drift(count=args.count or 400, delay=args.delay)
+        generate_concept_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
     else:
-        generate_stable(count=args.count or 100, delay=args.delay)
-        generate_data_drift(count=args.count or 100, delay=args.delay)
-        generate_concept_drift(count=args.count or 400, delay=args.delay)
+        generate_stable(count=args.count or DEFAULT_COUNT, delay=args.delay)
+        generate_data_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
+        generate_concept_drift(count=args.count or DEFAULT_COUNT, delay=args.delay)
 
     print("\nTraffic generation complete.")
     print("Run 'uv run python scripts/compute_drift.py' to analyze drift.")

@@ -127,6 +127,8 @@ The traffic generator has three scenarios:
 | Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
 | Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
 
+Each scenario defaults to 50 requests.
+
 Data drift shifts feature distributions while keeping the original click behavior:
 
 | Feature              | Normal         | Drifted          |
