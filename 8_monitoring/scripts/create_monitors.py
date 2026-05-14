@@ -93,9 +93,7 @@ def build_monitors() -> list[dict]:
         monitors.append(
             {
                 "name": f"CTR: PH {signal}",
-                "description": (
-                    f"Page-Hinkley detected drift in {signal}"
-                ),
+                "description": (f"Page-Hinkley detected drift in {signal}"),
                 "type": "MatchEvent",
                 "aplQuery": (
                     f"['{ds}'] | where event_type == 'drift_page_hinkley' "

@@ -55,9 +55,7 @@ def test_create_dashboard_main_exits_on_api_error(monkeypatch):
 
     monkeypatch.setattr(create_dashboard, "AXIOM_TOKEN", "token")
     monkeypatch.setattr(create_dashboard, "AXIOM_ORG_ID", "org")
-    monkeypatch.setattr(
-        create_dashboard.requests, "post", lambda *_, **__: Response()
-    )
+    monkeypatch.setattr(create_dashboard.requests, "post", lambda *_, **__: Response())
 
     with pytest.raises(SystemExit):
         create_dashboard.main()
@@ -146,9 +144,7 @@ def test_get_or_create_notifier_creates_when_missing(monkeypatch):
     monkeypatch.setattr(create_monitors.requests, "post", fake_post)
 
     assert create_monitors.get_or_create_notifier() == "notifier-2"
-    assert post_payload["json"]["properties"]["email"]["emails"] == [
-        "user@example.com"
-    ]
+    assert post_payload["json"]["properties"]["email"]["emails"] == ["user@example.com"]
 
 
 def test_get_or_create_notifier_returns_none_on_create_failure(monkeypatch):
