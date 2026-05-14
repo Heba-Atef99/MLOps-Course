@@ -148,8 +148,14 @@ For the clearest Page-Hinkley demo, send stable traffic first so the detector ha
 | ----------------------- | ---------- | ---------------------------------------- |
 | CTR: High Error Rate    | Threshold  | Error rate from feedback > 50%           |
 | CTR: Low Confidence     | Threshold  | Median confidence < 0.6                  |
-| CTR: PSI Drift Detected | Threshold  | Max PSI across features > 0.2            |
-| CTR: Page-Hinkley Drift | MatchEvent | Page-Hinkley detects drift in any signal |
+| CTR: PSI feature_hour_of_day | Threshold | PSI for that feature > 0.2            |
+| CTR: PSI feature_ad_position | Threshold | PSI for that feature > 0.2            |
+| CTR: PSI feature_user_age | Threshold | PSI for that feature > 0.2              |
+| CTR: PSI feature_session_duration_sec | Threshold | PSI for that feature > 0.2      |
+| CTR: PSI feature_page_views | Threshold | PSI for that feature > 0.2             |
+| CTR: PH error_rate      | MatchEvent | Page-Hinkley detects drift in error rate |
+| CTR: PH confidence      | MatchEvent | Page-Hinkley detects drift in confidence |
+| CTR: PH click_through_rate | MatchEvent | Page-Hinkley detects drift in CTR   |
 
 Alerts sent to email via Axiom notifier.
 

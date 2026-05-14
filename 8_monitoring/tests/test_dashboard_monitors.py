@@ -67,8 +67,12 @@ def test_build_monitors_contains_expected_alerts():
     names = {monitor["name"] for monitor in monitors}
 
     assert "CTR: High Error Rate" in names
-    assert "CTR: PSI Drift Detected" in names
-    assert "CTR: Page-Hinkley Drift" in names
+    assert "CTR: Low Confidence" in names
+    assert "CTR: PSI feature_hour_of_day" in names
+    assert "CTR: PSI feature_page_views" in names
+    assert "CTR: PH error_rate" in names
+    assert "CTR: PH click_through_rate" in names
+    assert len(monitors) == 10
 
 
 def test_get_existing_monitors_returns_names(monkeypatch):
@@ -188,7 +192,7 @@ def test_create_monitors_main_creates_missing_monitors(monkeypatch):
 
     create_monitors.main()
 
-    assert len(posted) == 4
+    assert len(posted) == 10
     assert all(monitor["notifierIds"] == ["notifier"] for monitor in posted)
 
 
@@ -221,4 +225,4 @@ def test_create_monitors_main_skips_existing_and_counts_failures(monkeypatch, ca
     output = capsys.readouterr().out
     assert "Skipped: CTR: High Error Rate" in output
     assert "1 skipped" in output
-    assert "3 failed" in output
+    assert "9 failed" in output
