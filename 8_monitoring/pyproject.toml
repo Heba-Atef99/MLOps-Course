@@ -1,5 +1,5 @@
 [project]
-name = "iris-monitoring-demo"
+name = "ctr-monitoring-demo"
 version = "0.1.0"
 description = "MLOps demo: model monitoring with Axiom, PSI drift detection, and Page-Hinkley change detection"
 requires-python = ">=3.11"

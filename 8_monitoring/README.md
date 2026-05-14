@@ -4,7 +4,7 @@ A monitoring demo built on top of a click-through rate prediction model. Predict
 
 ## Why Click-Through?
 
-Unlike Iris or static datasets, CTR gives us **immediate feedback**: we predict "will the user click?", and seconds later we know if they did. This closes the feedback loop and lets us monitor actual model accuracy in real-time, not just proxy metrics.
+Unlike static datasets, CTR gives us **immediate feedback**: we predict "will the user click?", and seconds later we know if they did. This closes the feedback loop and lets us monitor actual model accuracy in real-time, not just proxy metrics.
 
 ## Quick Start
 
