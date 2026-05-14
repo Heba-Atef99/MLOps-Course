@@ -215,6 +215,7 @@ def generate_concept_drift(count: int, delay: float) -> None:
         probability_fn=concept_drift_click_probability,
         count=count,
         delay=delay,
+        sample_fn=sample_stable_row,
     )
 
 
