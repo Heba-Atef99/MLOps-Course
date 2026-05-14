@@ -157,6 +157,8 @@ For the clearest Page-Hinkley demo, send stable traffic first so the detector ha
 | CTR: PH confidence      | MatchEvent | Page-Hinkley detects drift in confidence |
 | CTR: PH click_through_rate | MatchEvent | Page-Hinkley detects drift in CTR   |
 
+For a quick classroom demo, the monitors run every 1 minute over a 2 minute window.
+
 Alerts sent to email via Axiom notifier.
 
 ## Lessons Learned

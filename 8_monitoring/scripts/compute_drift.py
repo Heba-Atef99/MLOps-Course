@@ -51,8 +51,8 @@ BASELINE_COLUMNS = {
 PH_DELTA = 0.005
 PH_THRESHOLD = 50
 
-CURRENT_WINDOW_MINUTES = int(os.getenv("DRIFT_WINDOW_MINUTES", "360"))
-REFERENCE_LOOKBACK_DAYS = int(os.getenv("DRIFT_REFERENCE_DAYS", "30"))
+CURRENT_WINDOW_MINUTES = int(os.getenv("DRIFT_WINDOW_MINUTES", "2"))
+REFERENCE_LOOKBACK_MINUTES = int(os.getenv("DRIFT_REFERENCE_MINUTES", "2"))
 
 HEADERS = {
     "Authorization": f"Bearer {AXIOM_TOKEN}",
@@ -200,7 +200,7 @@ def fetch_signal_since(name: str, last_timestamp: str) -> list[dict]:
     time_filter = (
         f"| where _time > todatetime('{last_timestamp}')"
         if last_timestamp
-        else f"| where _time > ago({REFERENCE_LOOKBACK_DAYS}d)"
+        else f"| where _time > ago({REFERENCE_LOOKBACK_MINUTES}m)"
     )
 
     agg_map = {

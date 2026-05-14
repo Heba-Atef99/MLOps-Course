@@ -11,6 +11,7 @@ def test_build_dashboard_contains_monitoring_charts():
     assert "Error Rate Over Time (from feedback)" in chart_names
     assert "Confidence Over Time" in chart_names
     assert len(dashboard["layout"]) == len(dashboard["charts"])
+    assert dashboard["timeWindowStart"] == "qr-now-2h"
 
 
 def test_create_dashboard_main_posts_idempotent_payload(monkeypatch):
@@ -73,6 +74,8 @@ def test_build_monitors_contains_expected_alerts():
     assert "CTR: PH error_rate" in names
     assert "CTR: PH click_through_rate" in names
     assert len(monitors) == 10
+    assert all(monitor["intervalMinutes"] == 1 for monitor in monitors)
+    assert all(monitor["rangeMinutes"] == 2 for monitor in monitors)
 
 
 def test_get_existing_monitors_returns_names(monkeypatch):
