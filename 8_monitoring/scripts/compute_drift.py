@@ -129,20 +129,22 @@ def load_training_baseline() -> dict[str, np.ndarray]:
 def load_ph_state(feature: str) -> dict | None:
     apl = (
         f"['{AXIOM_DATASET}'] | where event_type == 'drift_ph_state' "
-        f"and feature == '{feature}' "
-        f"| order by _time desc | limit 1"
+        f"| order by _time desc | limit 100"
     )
     rows = query_axiom(apl)
     if not rows:
         return None
-    r = rows[0]
-    return {
-        "cumsum": float(r.get("cumsum", 0)),
-        "min_cumsum": float(r.get("min_cumsum", 0)),
-        "running_mean": float(r.get("running_mean", 0)),
-        "n": int(r.get("n", 0)),
-        "last_timestamp": r.get("last_timestamp", ""),
-    }
+    for r in rows:
+        if r.get("feature") != feature:
+            continue
+        return {
+            "cumsum": float(r.get("cumsum", 0)),
+            "min_cumsum": float(r.get("min_cumsum", 0)),
+            "running_mean": float(r.get("running_mean", 0)),
+            "n": int(r.get("n", 0)),
+            "last_timestamp": r.get("last_timestamp", ""),
+        }
+    return None
 
 
 def update_ph_incremental(

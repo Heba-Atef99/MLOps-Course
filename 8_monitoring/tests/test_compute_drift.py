@@ -121,6 +121,7 @@ def test_load_ph_state_restores_persisted_values(monkeypatch):
         "query_axiom",
         lambda _: [
             {
+                "feature": "error_rate",
                 "cumsum": "1.5",
                 "min_cumsum": "-0.5",
                 "running_mean": "0.25",
@@ -139,6 +140,25 @@ def test_load_ph_state_restores_persisted_values(monkeypatch):
         "n": 10,
         "last_timestamp": "2026-01-01T00:00:00Z",
     }
+
+
+def test_load_ph_state_skips_rows_for_other_features(monkeypatch):
+    monkeypatch.setattr(
+        compute_drift,
+        "query_axiom",
+        lambda _: [
+            {
+                "feature": "confidence",
+                "cumsum": "1.5",
+                "min_cumsum": "-0.5",
+                "running_mean": "0.25",
+                "n": "10",
+                "last_timestamp": "2026-01-01T00:00:00Z",
+            }
+        ],
+    )
+
+    assert compute_drift.load_ph_state("error_rate") is None
 
 
 def test_fetch_prediction_data_projects_monitored_fields(monkeypatch):
