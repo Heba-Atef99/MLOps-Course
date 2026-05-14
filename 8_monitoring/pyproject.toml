@@ -7,7 +7,6 @@ dependencies = [
     "litestar[standard]",
     "scikit-learn",
     "skops",
-    "hyperdx-opentelemetry",
     "python-dotenv",
     "axiom-py",
     "requests",
