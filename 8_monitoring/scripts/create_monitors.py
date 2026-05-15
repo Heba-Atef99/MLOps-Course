@@ -6,6 +6,11 @@ Usage: uv run python scripts/create_monitors.py
 import os
 import sys
 
+try:
+    from compute_drift import NUMERIC_FEATURES
+except ModuleNotFoundError:
+    from scripts.compute_drift import NUMERIC_FEATURES
+
 import requests
 from dotenv import load_dotenv
 
@@ -16,6 +21,7 @@ AXIOM_ORG_ID = os.getenv("AXIOM_ORG_ID")
 AXIOM_DATASET = os.getenv("AXIOM_DATASET", "mlops")
 ALERT_EMAIL = os.getenv("ALERT_EMAIL")
 API_BASE = "https://api.axiom.co"
+PH_SIGNALS = ["error_rate", "confidence", "click_through_rate"]
 
 HEADERS = {
     "Authorization": f"Bearer {AXIOM_TOKEN}",
@@ -26,7 +32,7 @@ HEADERS = {
 
 def build_monitors() -> list[dict]:
     ds = AXIOM_DATASET
-    return [
+    monitors = [
         {
             "name": "CTR: High Error Rate",
             "description": "Error rate from feedback exceeds 50%",
@@ -38,8 +44,8 @@ def build_monitors() -> list[dict]:
             "columnName": "err",
             "operator": "Above",
             "threshold": 0.5,
-            "intervalMinutes": 5,
-            "rangeMinutes": 10,
+            "intervalMinutes": 1,
+            "rangeMinutes": 2,
             "alertOnNoData": False,
             "notifyByGroup": False,
         },
@@ -54,41 +60,53 @@ def build_monitors() -> list[dict]:
             "columnName": "med_conf",
             "operator": "Below",
             "threshold": 0.6,
-            "intervalMinutes": 5,
-            "rangeMinutes": 10,
-            "alertOnNoData": False,
-            "notifyByGroup": False,
-        },
-        {
-            "name": "CTR: PSI Drift Detected",
-            "description": "Max PSI across features exceeds 0.2",
-            "type": "Threshold",
-            "aplQuery": (
-                f"['{ds}'] | where event_type == 'drift_summary' "
-                f"| summarize max_psi = max(max_psi)"
-            ),
-            "columnName": "max_psi",
-            "operator": "Above",
-            "threshold": 0.2,
-            "intervalMinutes": 360,
-            "rangeMinutes": 720,
-            "alertOnNoData": False,
-            "notifyByGroup": False,
-        },
-        {
-            "name": "CTR: Page-Hinkley Drift",
-            "description": "Page-Hinkley detected drift in error rate or confidence",
-            "type": "MatchEvent",
-            "aplQuery": (
-                f"['{ds}'] | where event_type == 'drift_page_hinkley' "
-                f"and drift_detected == true"
-            ),
-            "intervalMinutes": 360,
-            "rangeMinutes": 720,
+            "intervalMinutes": 1,
+            "rangeMinutes": 2,
             "alertOnNoData": False,
             "notifyByGroup": False,
         },
     ]
+
+    for feature in NUMERIC_FEATURES:
+        monitors.append(
+            {
+                "name": f"CTR: PSI {feature}",
+                "description": (
+                    f"PSI for {feature} exceeds 0.2 against the training baseline"
+                ),
+                "type": "Threshold",
+                "aplQuery": (
+                    f"['{ds}'] | where event_type == 'drift_psi' "
+                    f"and feature == '{feature}' | summarize psi = max(psi)"
+                ),
+                "columnName": "psi",
+                "operator": "Above",
+                "threshold": 0.2,
+                "intervalMinutes": 1,
+                "rangeMinutes": 2,
+                "alertOnNoData": False,
+                "notifyByGroup": False,
+            }
+        )
+
+    for signal in PH_SIGNALS:
+        monitors.append(
+            {
+                "name": f"CTR: PH {signal}",
+                "description": (f"Page-Hinkley detected drift in {signal}"),
+                "type": "MatchEvent",
+                "aplQuery": (
+                    f"['{ds}'] | where event_type == 'drift_page_hinkley' "
+                    f"and feature == '{signal}' and drift_detected == true"
+                ),
+                "intervalMinutes": 1,
+                "rangeMinutes": 2,
+                "alertOnNoData": False,
+                "notifyByGroup": False,
+            }
+        )
+
+    return monitors
 
 
 def get_existing_monitors() -> set[str]:

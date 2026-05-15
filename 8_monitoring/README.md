@@ -4,13 +4,13 @@ A monitoring demo built on top of a click-through rate prediction model. Predict
 
 ## Why Click-Through?
 
-Unlike Iris or static datasets, CTR gives us **immediate feedback**: we predict "will the user click?", and seconds later we know if they did. This closes the feedback loop and lets us monitor actual model accuracy in real-time, not just proxy metrics.
+Unlike static datasets, CTR gives us **immediate feedback**: we predict "will the user click?", and seconds later we know if they did. This closes the feedback loop and lets us monitor actual model accuracy in real-time, not just proxy metrics.
 
 ## Quick Start
 
 ```bash
 uv sync
-uv run python training/train.py     # train CTR model (synthetic data)
+uv run python training/train.py      # train CTR model + save training baseline
 cp .env.example .env                 # fill in Axiom credentials
 uv run uvicorn app.main:app --reload # start server
 ```
@@ -50,12 +50,13 @@ This is the "Immediate Feedback" pattern: the correct answer arrives seconds aft
 ├── training/
 │   └── train.py             # Train on synthetic CTR data (82% accuracy)
 ├── scripts/
-│   ├── generate_traffic.py  # Send normal + drifted traffic with feedback
-│   ├── compute_drift.py     # PSI on features, Page-Hinkley on error rate
+│   ├── generate_traffic.py  # Send stable, data drift, or concept drift traffic
+│   ├── compute_drift.py     # PSI vs training baseline, Page-Hinkley on signals
 │   ├── create_dashboard.py  # Create/update Axiom dashboard (idempotent)
 │   └── create_monitors.py   # Create Axiom alerts
 ├── tests/                   # 9 tests (predict, feedback, model, edge cases)
 ├── model/
+├── data/
 ├── pyproject.toml
 └── .env.example
 ```
@@ -66,7 +67,7 @@ We use two complementary techniques, each applied where it fits best:
 
 ### PSI (Population Stability Index) on input features
 
-Compares the distribution of a feature between a reference window (old data) and a current window (recent data). Catches sudden distribution shifts in model inputs.
+Compares the distribution of each production feature against the training baseline saved by `training/train.py` at `data/training_baseline.csv`. This catches cases where the model is receiving inputs that no longer look like the data it learned from.
 
 Applied to: `hour_of_day`, `ad_position`, `user_age`, `session_duration_sec`, `page_views`
 
@@ -99,10 +100,12 @@ Applied to:
 # 1. Start the server
 uv run uvicorn app.main:app --reload
 
-# 2. Generate traffic (100 normal + 50 drifted, with feedback)
-uv run python scripts/generate_traffic.py
+# 2. Generate traffic with feedback
+uv run python scripts/generate_traffic.py stable
+uv run python scripts/generate_traffic.py data-drift
+uv run python scripts/generate_traffic.py concept-drift
 
-# 3. Compute drift metrics (ingests results back to Axiom)
+# 3. Compute drift metrics against the training baseline
 uv run python scripts/compute_drift.py
 
 # 4. Create/update Axiom dashboard (idempotent, same UID every time)
@@ -114,9 +117,19 @@ uv run python scripts/create_monitors.py
 
 Axiom dashboard: https://app.axiom.co/iti-ihxq/dashboards/409eed9e-18e5-443e-a685-760acf18ecfc
 
-## Drifted Traffic
+## Traffic Scenarios
 
-The traffic generator simulates drift by shifting feature distributions:
+The traffic generator has three scenarios:
+
+| Scenario        | Command                                                | Expected detector          |
+| --------------- | ------------------------------------------------------ | -------------------------- |
+| Stable          | `uv run python scripts/generate_traffic.py stable`     | Training-like baseline     |
+| Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
+| Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
+
+Each scenario defaults to 50 requests.
+
+Data drift shifts feature distributions while keeping the original click behavior:
 
 | Feature              | Normal         | Drifted          |
 | -------------------- | -------------- | ---------------- |
@@ -126,9 +139,12 @@ The traffic generator simulates drift by shifting feature distributions:
 | user_age             | 18-65          | 55-65 (older)    |
 | session_duration_sec | 30-1200        | 1200-1800        |
 | page_views           | 1-30           | 1-3              |
-| simulated CTR        | ~15-25%        | ~3%              |
 
-This causes the model to encounter out-of-distribution inputs, lowering confidence and increasing error rate, which PSI and Page-Hinkley detect.
+Stable traffic is sampled from the saved training baseline, so PSI should stay quiet unless the training baseline itself changes.
+
+Concept drift keeps the same feature ranges as stable traffic but changes the click behavior. That means the input distribution can still look normal while feedback accuracy, CTR, and error behavior change, which is what Page-Hinkley is meant to catch.
+
+For the clearest Page-Hinkley demo, send stable traffic first so the detector has a normal feedback baseline, then send concept drift traffic.
 
 ## Axiom Monitors
 
@@ -136,8 +152,16 @@ This causes the model to encounter out-of-distribution inputs, lowering confiden
 | ----------------------- | ---------- | ---------------------------------------- |
 | CTR: High Error Rate    | Threshold  | Error rate from feedback > 50%           |
 | CTR: Low Confidence     | Threshold  | Median confidence < 0.6                  |
-| CTR: PSI Drift Detected | Threshold  | Max PSI across features > 0.2            |
-| CTR: Page-Hinkley Drift | MatchEvent | Page-Hinkley detects drift in any signal |
+| CTR: PSI feature_hour_of_day | Threshold | PSI for that feature > 0.2            |
+| CTR: PSI feature_ad_position | Threshold | PSI for that feature > 0.2            |
+| CTR: PSI feature_user_age | Threshold | PSI for that feature > 0.2              |
+| CTR: PSI feature_session_duration_sec | Threshold | PSI for that feature > 0.2      |
+| CTR: PSI feature_page_views | Threshold | PSI for that feature > 0.2             |
+| CTR: PH error_rate      | MatchEvent | Page-Hinkley detects drift in error rate |
+| CTR: PH confidence      | MatchEvent | Page-Hinkley detects drift in confidence |
+| CTR: PH click_through_rate | MatchEvent | Page-Hinkley detects drift in CTR   |
+
+For a quick classroom demo, the monitors run every 1 minute over a 2 minute window.
 
 Alerts sent to email via Axiom notifier.
 
@@ -146,5 +170,5 @@ Alerts sent to email via Axiom notifier.
 - **PSI for features, Page-Hinkley for signals**: use the right tool for the right data
 - **Immediate feedback closes the loop**: CTR lets us monitor actual accuracy, not just proxies
 - **Dashboard scripts should be idempotent**: use a fixed UID + `overwrite: True` to avoid duplicates
-- **Drifted traffic is easy to simulate**: shift feature ranges and watch PSI light up
-- **Page-Hinkley needs time**: it tracks cumulative deviation over hours/days, not minutes. In production with weeks of data, it catches slow model degradation that PSI misses
+- **Data drift is easy to simulate**: shift feature ranges and watch PSI light up
+- **Concept drift can happen without feature drift**: keep input ranges stable, change feedback behavior, and watch Page-Hinkley light up

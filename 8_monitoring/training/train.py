@@ -8,6 +8,17 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
 MODEL_DIR = Path(__file__).resolve().parent.parent / "model"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+BASELINE_PATH = DATA_DIR / "training_baseline.csv"
+
+FEATURE_NAMES = [
+    "hour_of_day",
+    "device_type",
+    "ad_position",
+    "user_age",
+    "session_duration_sec",
+    "page_views",
+]
 
 
 def generate_synthetic_data(
@@ -61,6 +72,17 @@ def train_and_save() -> None:
     model_path = MODEL_DIR / "ctr_model.skops"
     sio.dump(model, model_path)
     print(f"Model saved to {model_path}")
+
+    DATA_DIR.mkdir(exist_ok=True)
+    np.savetxt(
+        BASELINE_PATH,
+        X_train,
+        delimiter=",",
+        header=",".join(FEATURE_NAMES),
+        comments="",
+        fmt=["%d", "%d", "%d", "%d", "%.1f", "%d"],
+    )
+    print(f"Training baseline saved to {BASELINE_PATH}")
 
 
 if __name__ == "__main__":

@@ -62,21 +62,7 @@ class AxiomMiddleware(AbstractMiddleware):
         await self.app(scope, receive, send_wrapper)
 
 
-def setup_hyperdx() -> None:
-    try:
-        from hyperdx.opentelemetry import configure_opentelemetry
-
-        configure_opentelemetry()
-        logger.info("HyperDX telemetry configured")
-    except ImportError:
-        logger.warning("hyperdx-opentelemetry not installed: remote logging disabled")
-    except Exception:
-        logger.warning("Failed to configure HyperDX", exc_info=True)
-
-
 def on_startup(app: Litestar) -> None:
-    setup_hyperdx()
-
     logger.info("Starting CTR Monitoring Demo")
     logger.debug("Model path: %s", MODEL_PATH)
 

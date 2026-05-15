@@ -5,3 +5,4 @@ __pycache__/
 .venv/
 *.pyc
 model/*.skops
+data/*.csv

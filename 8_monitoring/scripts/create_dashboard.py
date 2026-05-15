@@ -96,7 +96,7 @@ def build_dashboard() -> dict:
         "layout": layout,
         "refreshTime": 60,
         "schemaVersion": 2,
-        "timeWindowStart": "qr-now-24h",
+        "timeWindowStart": "qr-now-2h",
         "timeWindowEnd": "qr-now",
     }
 

@@ -2,7 +2,8 @@
 
 Page-Hinkley state (cumsum, min_cumsum, mean, n) is persisted to Axiom as
 drift_ph_state events. Each run loads the last state, processes only new
-hourly buckets since the last run, updates the state, and ingests it back.
+raw prediction/feedback events since the last run, updates the state, and ingests
+it back.
 
 Usage: uv run python scripts/compute_drift.py
 """
@@ -20,6 +21,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TRAINING_BASELINE_PATH = os.getenv(
+    "TRAINING_BASELINE_PATH",
+    os.path.join(BASE_DIR, "data", "training_baseline.csv"),
+)
+
 AXIOM_TOKEN = os.getenv("AXIOM_TOKEN")
 AXIOM_ORG_ID = os.getenv("AXIOM_ORG_ID")
 AXIOM_DATASET = os.getenv("AXIOM_DATASET", "mlops")
@@ -33,11 +40,19 @@ NUMERIC_FEATURES = {
     "feature_page_views": [1, 5, 10, 20, 30, 50],
 }
 
-PH_DELTA = 0.005
-PH_THRESHOLD = 50
+BASELINE_COLUMNS = {
+    "feature_hour_of_day": "hour_of_day",
+    "feature_ad_position": "ad_position",
+    "feature_user_age": "user_age",
+    "feature_session_duration_sec": "session_duration_sec",
+    "feature_page_views": "page_views",
+}
 
-CURRENT_WINDOW_MINUTES = int(os.getenv("DRIFT_WINDOW_MINUTES", "360"))
-REFERENCE_LOOKBACK_DAYS = int(os.getenv("DRIFT_REFERENCE_DAYS", "30"))
+PH_DELTA = 0.005
+PH_THRESHOLD = 15
+
+CURRENT_WINDOW_MINUTES = int(os.getenv("DRIFT_WINDOW_MINUTES", "2"))
+REFERENCE_LOOKBACK_MINUTES = int(os.getenv("DRIFT_REFERENCE_MINUTES", "2"))
 
 HEADERS = {
     "Authorization": f"Bearer {AXIOM_TOKEN}",
@@ -92,26 +107,44 @@ def compute_psi(reference: np.ndarray, current: np.ndarray, bins: list) -> float
     return round(psi, 6)
 
 
+def load_training_baseline() -> dict[str, np.ndarray]:
+    if not os.path.exists(TRAINING_BASELINE_PATH):
+        print(
+            "Error: training baseline not found at "
+            f"{TRAINING_BASELINE_PATH}. Run 'uv run python training/train.py'.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    data = np.genfromtxt(TRAINING_BASELINE_PATH, delimiter=",", names=True)
+    return {
+        axiom_feature: np.asarray(data[baseline_column], dtype=float)
+        for axiom_feature, baseline_column in BASELINE_COLUMNS.items()
+    }
+
+
 # --- Page-Hinkley with persistent state ---
 
 
 def load_ph_state(feature: str) -> dict | None:
     apl = (
         f"['{AXIOM_DATASET}'] | where event_type == 'drift_ph_state' "
-        f"and feature == '{feature}' "
-        f"| order by _time desc | limit 1"
+        f"| order by _time desc | limit 100"
     )
     rows = query_axiom(apl)
     if not rows:
         return None
-    r = rows[0]
-    return {
-        "cumsum": float(r.get("cumsum", 0)),
-        "min_cumsum": float(r.get("min_cumsum", 0)),
-        "running_mean": float(r.get("running_mean", 0)),
-        "n": int(r.get("n", 0)),
-        "last_timestamp": r.get("last_timestamp", ""),
-    }
+    for r in rows:
+        if r.get("feature") != feature:
+            continue
+        return {
+            "cumsum": float(r.get("cumsum", 0)),
+            "min_cumsum": float(r.get("min_cumsum", 0)),
+            "running_mean": float(r.get("running_mean", 0)),
+            "n": int(r.get("n", 0)),
+            "last_timestamp": r.get("last_timestamp", ""),
+        }
+    return None
 
 
 def update_ph_incremental(
@@ -162,29 +195,29 @@ def fetch_prediction_data(time_filter: str) -> list[dict]:
     return query_axiom(apl)
 
 
-def fetch_hourly_since(name: str, last_timestamp: str) -> list[dict]:
+def fetch_signal_since(name: str, last_timestamp: str) -> list[dict]:
     ds = AXIOM_DATASET
     time_filter = (
         f"| where _time > todatetime('{last_timestamp}')"
         if last_timestamp
-        else f"| where _time > ago({REFERENCE_LOOKBACK_DAYS}d)"
+        else f"| where _time > ago({REFERENCE_LOOKBACK_MINUTES}m)"
     )
 
     agg_map = {
         "error_rate": (
             f"['{ds}'] | where event_type == 'feedback' {time_filter} "
-            f"| summarize val = 1.0 - avg(iff(correct, 1.0, 0.0)) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = iff(correct, 0.0, 1.0) "
+            f"| order by _time asc"
         ),
         "confidence": (
             f"['{ds}'] | where event_type == 'prediction' {time_filter} "
-            f"| summarize val = avg(confidence) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = confidence "
+            f"| order by _time asc"
         ),
         "click_through_rate": (
             f"['{ds}'] | where event_type == 'feedback' {time_filter} "
-            f"| summarize val = avg(iff(actual_click, 1.0, 0.0)) "
-            f"by bin(_time, 1h) | order by _time asc"
+            f"| project _time, val = iff(actual_click, 1.0, 0.0) "
+            f"| order by _time asc"
         ),
     }
 
@@ -219,26 +252,26 @@ def main() -> None:
         sys.exit(1)
 
     win = CURRENT_WINDOW_MINUTES
-    ref = REFERENCE_LOOKBACK_DAYS
-    print(f"Computing drift (reference: >{win}m ago, current: last {win}m)")
+    print(
+        "Computing drift "
+        f"(PSI baseline: training data, current: last {win}m production)"
+    )
 
-    ref_filter = f"where _time > ago({ref}d) and _time < ago({win}m)"
     cur_filter = f"where _time > ago({win}m)"
 
-    ref_data = fetch_prediction_data(ref_filter)
+    training_baseline = load_training_baseline()
     cur_data = fetch_prediction_data(cur_filter)
 
     now = datetime.now(UTC).isoformat()
     events: list[dict] = []
 
-    if ref_data and cur_data:
-        print(f"  Reference: {len(ref_data)} events, Current: {len(cur_data)} events")
-        print("\n  PSI (features):")
+    if cur_data:
+        baseline_count = len(next(iter(training_baseline.values()), []))
+        print(f"  Training baseline: {baseline_count} rows")
+        print(f"  Current production: {len(cur_data)} events")
+        print("\n  PSI (training baseline vs current production):")
         for feature, bins in NUMERIC_FEATURES.items():
-            ref_vals = np.array(
-                [r[feature] for r in ref_data if r.get(feature) is not None],
-                dtype=float,
-            )
+            ref_vals = training_baseline[feature]
             cur_vals = np.array(
                 [r[feature] for r in cur_data if r.get(feature) is not None],
                 dtype=float,
@@ -255,12 +288,13 @@ def main() -> None:
                     "feature": feature,
                     "psi": psi,
                     "level": level,
+                    "baseline": "training",
                     "ref_count": len(ref_vals),
                     "cur_count": len(cur_vals),
                 }
             )
     else:
-        print("  Insufficient data for PSI (need both reference and current)")
+        print("  Insufficient data for PSI (need current production predictions)")
 
     print("\n  Page-Hinkley (incremental):")
     ph_signals = ["error_rate", "confidence", "click_through_rate"]
@@ -276,9 +310,9 @@ def main() -> None:
         else:
             print(f"    {name}: no previous state, starting fresh")
 
-        hourly = fetch_hourly_since(name, last_ts)
+        signal_rows = fetch_signal_since(name, last_ts)
 
-        if not hourly:
+        if not signal_rows:
             print(f"    {name}: no new data since last run")
             if prev_state:
                 ph_value = round(prev_state["cumsum"] - prev_state["min_cumsum"], 6)
@@ -297,18 +331,18 @@ def main() -> None:
             continue
 
         new_values = np.array(
-            [h["val"] for h in hourly if h.get("val") is not None],
+            [row["val"] for row in signal_rows if row.get("val") is not None],
             dtype=float,
         )
         new_timestamps = [
-            h.get("_time", "") for h in hourly if h.get("val") is not None
+            row.get("_time", "") for row in signal_rows if row.get("val") is not None
         ]
         latest_ts = new_timestamps[-1] if new_timestamps else last_ts
 
         updated = update_ph_incremental(prev_state, new_values)
         status = "DRIFT" if updated["drift_detected"] else "stable"
         print(
-            f"    {name}: +{len(new_values)} buckets, "
+            f"    {name}: +{len(new_values)} events, "
             f"PH={updated['ph_value']:.4f} ({status}), "
             f"n={updated['n']}"
         )
