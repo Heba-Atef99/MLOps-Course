@@ -45,12 +45,8 @@ STABLE_FALLBACK_RANGES = {
 }
 
 DATA_DRIFT_RANGES = {
+    **STABLE_FALLBACK_RANGES,
     "hour_of_day": (0, 5),
-    "device_type": (0, 0),
-    "ad_position": (4, 5),
-    "user_age": (55, 65),
-    "session_duration_sec": (1200, 1800),
-    "page_views": (1, 3),
 }
 
 
@@ -70,18 +66,9 @@ def stable_click_probability(sample: dict[str, Any]) -> float:
 
 
 def concept_drift_click_probability(sample: dict[str, Any]) -> float:
-    prob = 0.08
-    prob += (sample["ad_position"] - 1) * 0.08
-    prob += 0.25 if sample["device_type"] == 0 else 0.0
-    if 0 <= sample["hour_of_day"] <= 8:
-        prob += 0.25
-    if sample["page_views"] <= 5:
-        prob += 0.20
-    if sample["session_duration_sec"] > 900:
-        prob += 0.20
-    if 45 <= sample["user_age"] <= 65:
-        prob += 0.12
-    return max(0.02, min(prob, 0.95))
+    if 0 <= sample["hour_of_day"] <= 11:
+        return 0.95
+    return 0.02
 
 
 def random_sample(ranges: FeatureRanges) -> dict[str, Any]:
@@ -118,6 +105,13 @@ def sample_stable_row() -> dict[str, Any]:
     if baseline_rows:
         return random.choice(baseline_rows)
     return random_sample(STABLE_FALLBACK_RANGES)
+
+
+def sample_data_drift_row() -> dict[str, Any]:
+    sample = sample_stable_row()
+    lo, hi = DATA_DRIFT_RANGES["hour_of_day"]
+    sample["hour_of_day"] = random.randint(lo, hi)
+    return sample
 
 
 def simulate_click(
@@ -201,10 +195,11 @@ def generate_stable(count: int, delay: float) -> None:
 def generate_data_drift(count: int, delay: float) -> None:
     generate(
         label="data drift",
-        ranges=DATA_DRIFT_RANGES,
+        ranges=None,
         probability_fn=stable_click_probability,
         count=count,
         delay=delay,
+        sample_fn=sample_data_drift_row,
     )
 
 

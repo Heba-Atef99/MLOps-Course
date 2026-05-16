@@ -127,22 +127,31 @@ The traffic generator has three scenarios:
 | Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
 | Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
 
-Each scenario defaults to 50 requests.
+Stable and data-drift scenarios default to 50 requests. Concept drift defaults to
+100 requests so the feedback signal has enough points to move visibly.
 
-Data drift shifts feature distributions while keeping the original click behavior:
+Data drift shifts one input feature while keeping the original click behavior.
+The demo uses `hour_of_day` because it has a PSI monitor and appears in the
+dashboard feature summary, making the shift easy to see.
 
 | Feature              | Normal         | Drifted          |
 | -------------------- | -------------- | ---------------- |
-| hour_of_day          | 8-22 (daytime) | 0-5 (late night) |
-| device_type          | 60% mobile     | 100% mobile      |
-| ad_position          | 1-5            | 4-5 (bottom)     |
-| user_age             | 18-65          | 55-65 (older)    |
-| session_duration_sec | 30-1200        | 1200-1800        |
-| page_views           | 1-30           | 1-3              |
+| hour_of_day          | Training-like  | 0-5 (late night) |
+| device_type          | Training-like  | Training-like    |
+| ad_position          | Training-like  | Training-like    |
+| user_age             | Training-like  | Training-like    |
+| session_duration_sec | Training-like  | Training-like    |
+| page_views           | Training-like  | Training-like    |
 
-Stable traffic is sampled from the saved training baseline, so PSI should stay quiet unless the training baseline itself changes.
+Stable traffic is sampled from the saved training baseline, so PSI should stay
+quiet unless the training baseline itself changes.
 
-Concept drift keeps the same feature ranges as stable traffic but changes the click behavior. That means the input distribution can still look normal while feedback accuracy, CTR, and error behavior change, which is what Page-Hinkley is meant to catch.
+Concept drift keeps the same feature distribution as stable traffic but changes
+the click behavior for one relationship: `hour_of_day`. In this simulation,
+early-day traffic becomes very likely to click while later-day traffic becomes
+unlikely to click. That means the input distribution can still look normal while
+feedback accuracy, CTR, and error behavior change, which is what Page-Hinkley is
+meant to catch.
 
 For the clearest Page-Hinkley demo, send stable traffic first so the detector has a normal feedback baseline, then send concept drift traffic.
 

@@ -9,21 +9,21 @@ def test_random_sample_uses_feature_ranges(monkeypatch):
 
     assert sample == {
         "hour_of_day": 5,
-        "device_type": 0,
+        "device_type": 2,
         "ad_position": 5,
         "user_age": 65,
         "session_duration_sec": 1800,
-        "page_views": 3,
+        "page_views": 50,
     }
 
 
-def test_data_drift_ranges_shift_features_without_changing_click_function():
-    stable = generate_traffic.random_sample(generate_traffic.STABLE_RANGES)
-    drifted = generate_traffic.random_sample(generate_traffic.DATA_DRIFT_RANGES)
+def test_data_drift_ranges_shift_only_hour_of_day():
+    stable = generate_traffic.STABLE_FALLBACK_RANGES
+    drifted = generate_traffic.DATA_DRIFT_RANGES
+    changed = [name for name in stable if stable[name] != drifted[name]]
 
-    assert set(stable) == set(drifted)
-    assert generate_traffic.DATA_DRIFT_RANGES["hour_of_day"] == (0, 5)
-    assert generate_traffic.DATA_DRIFT_RANGES["user_age"] == (55, 65)
+    assert changed == ["hour_of_day"]
+    assert drifted["hour_of_day"] == (0, 5)
 
 
 def test_load_training_baseline_rows_reads_csv(tmp_path, monkeypatch):
@@ -87,7 +87,24 @@ def test_sample_stable_row_falls_back_when_baseline_missing(monkeypatch):
     assert sample["page_views"] == 1
 
 
-def test_concept_drift_changes_click_probability_on_stable_features():
+def test_sample_data_drift_row_changes_only_hour(monkeypatch):
+    stable_sample = {
+        "hour_of_day": 14,
+        "device_type": 1,
+        "ad_position": 2,
+        "user_age": 28,
+        "session_duration_sec": 450.0,
+        "page_views": 12,
+    }
+    monkeypatch.setattr(generate_traffic, "sample_stable_row", lambda: stable_sample)
+    monkeypatch.setattr(generate_traffic.random, "randint", lambda lo, hi: hi)
+
+    sample = generate_traffic.sample_data_drift_row()
+
+    assert sample == {**stable_sample, "hour_of_day": 5}
+
+
+def test_concept_drift_changes_click_probability_by_hour_only():
     sample = {
         "hour_of_day": 5,
         "device_type": 0,
@@ -103,6 +120,22 @@ def test_concept_drift_changes_click_probability_on_stable_features():
     assert concept_prob > stable_prob
     assert 0.0 <= stable_prob <= 1.0
     assert 0.0 <= concept_prob <= 1.0
+
+    same_hour_different_features = {
+        "hour_of_day": 5,
+        "device_type": 2,
+        "ad_position": 1,
+        "user_age": 22,
+        "session_duration_sec": 60.0,
+        "page_views": 50,
+    }
+    later_hour = {**sample, "hour_of_day": 18}
+
+    assert (
+        generate_traffic.concept_drift_click_probability(same_hour_different_features)
+        == concept_prob
+    )
+    assert generate_traffic.concept_drift_click_probability(later_hour) < concept_prob
 
 
 def test_simulate_click_uses_probability_function(monkeypatch):
@@ -215,6 +248,7 @@ def test_generate_wrapper_functions_call_generate(monkeypatch):
     assert calls[1][0] == "data drift"
     assert calls[2][0] == "concept drift"
     assert calls[0][5] == generate_traffic.sample_stable_row
+    assert calls[1][5] == generate_traffic.sample_data_drift_row
 
 
 def test_main_dispatches_selected_scenario(monkeypatch):
@@ -267,5 +301,5 @@ def test_main_dispatches_all_scenarios(monkeypatch):
     assert called == [
         ("stable", 50, 0.0),
         ("data", 50, 0.0),
-        ("concept", 50, 0.0),
+        ("concept", 100, 0.0),
     ]
