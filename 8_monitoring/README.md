@@ -121,11 +121,11 @@ Axiom dashboard: https://app.axiom.co/iti-ihxq/dashboards/409eed9e-18e5-443e-a68
 
 The traffic generator has three scenarios:
 
-| Scenario        | Command                                                | Expected detector          |
-| --------------- | ------------------------------------------------------ | -------------------------- |
-| Stable          | `uv run python scripts/generate_traffic.py stable`     | Training-like baseline     |
-| Data drift      | `uv run python scripts/generate_traffic.py data-drift` | PSI on input features      |
-| Concept drift   | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
+| Scenario      | Command                                                   | Expected detector                |
+| ------------- | --------------------------------------------------------- | -------------------------------- |
+| Stable        | `uv run python scripts/generate_traffic.py stable`        | Training-like baseline           |
+| Data drift    | `uv run python scripts/generate_traffic.py data-drift`    | PSI on input features            |
+| Concept drift | `uv run python scripts/generate_traffic.py concept-drift` | Page-Hinkley on feedback signals |
 
 Stable and data-drift scenarios default to 50 requests. Concept drift defaults to
 100 requests so the feedback signal has enough points to move visibly.
@@ -134,14 +134,14 @@ Data drift shifts one input feature while keeping the original click behavior.
 The demo uses `hour_of_day` because it has a PSI monitor and appears in the
 dashboard feature summary, making the shift easy to see.
 
-| Feature              | Normal         | Drifted          |
-| -------------------- | -------------- | ---------------- |
-| hour_of_day          | Training-like  | 0-5 (late night) |
-| device_type          | Training-like  | Training-like    |
-| ad_position          | Training-like  | Training-like    |
-| user_age             | Training-like  | Training-like    |
-| session_duration_sec | Training-like  | Training-like    |
-| page_views           | Training-like  | Training-like    |
+| Feature              | Normal        | Drifted          |
+| -------------------- | ------------- | ---------------- |
+| hour_of_day          | Training-like | 0-5 (late night) |
+| device_type          | Training-like | Training-like    |
+| ad_position          | Training-like | Training-like    |
+| user_age             | Training-like | Training-like    |
+| session_duration_sec | Training-like | Training-like    |
+| page_views           | Training-like | Training-like    |
 
 Stable traffic is sampled from the saved training baseline, so PSI should stay
 quiet unless the training baseline itself changes.
@@ -157,18 +157,18 @@ For the clearest Page-Hinkley demo, send stable traffic first so the detector ha
 
 ## Axiom Monitors
 
-| Monitor                 | Type       | Triggers when                            |
-| ----------------------- | ---------- | ---------------------------------------- |
-| CTR: High Error Rate    | Threshold  | Error rate from feedback > 50%           |
-| CTR: Low Confidence     | Threshold  | Median confidence < 0.6                  |
-| CTR: PSI feature_hour_of_day | Threshold | PSI for that feature > 0.2            |
-| CTR: PSI feature_ad_position | Threshold | PSI for that feature > 0.2            |
-| CTR: PSI feature_user_age | Threshold | PSI for that feature > 0.2              |
-| CTR: PSI feature_session_duration_sec | Threshold | PSI for that feature > 0.2      |
-| CTR: PSI feature_page_views | Threshold | PSI for that feature > 0.2             |
-| CTR: PH error_rate      | MatchEvent | Page-Hinkley detects drift in error rate |
-| CTR: PH confidence      | MatchEvent | Page-Hinkley detects drift in confidence |
-| CTR: PH click_through_rate | MatchEvent | Page-Hinkley detects drift in CTR   |
+| Monitor                               | Type       | Triggers when                            |
+| ------------------------------------- | ---------- | ---------------------------------------- |
+| CTR: High Error Rate                  | Threshold  | Error rate from feedback > 50%           |
+| CTR: Low Confidence                   | Threshold  | Median confidence < 0.6                  |
+| CTR: PSI feature_hour_of_day          | Threshold  | PSI for that feature > 0.2               |
+| CTR: PSI feature_ad_position          | Threshold  | PSI for that feature > 0.2               |
+| CTR: PSI feature_user_age             | Threshold  | PSI for that feature > 0.2               |
+| CTR: PSI feature_session_duration_sec | Threshold  | PSI for that feature > 0.2               |
+| CTR: PSI feature_page_views           | Threshold  | PSI for that feature > 0.2               |
+| CTR: PH error_rate                    | MatchEvent | Page-Hinkley detects drift in error rate |
+| CTR: PH confidence                    | MatchEvent | Page-Hinkley detects drift in confidence |
+| CTR: PH click_through_rate            | MatchEvent | Page-Hinkley detects drift in CTR        |
 
 For a quick classroom demo, the monitors run every 1 minute over a 2 minute window.
 
