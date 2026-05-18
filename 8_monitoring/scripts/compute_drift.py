@@ -97,8 +97,8 @@ def compute_psi(reference: np.ndarray, current: np.ndarray, bins: list) -> float
     ref_hist, _ = np.histogram(reference, bins=bins)
     cur_hist, _ = np.histogram(current, bins=bins)
 
-    ref_pct = ref_hist / max(ref_hist.sum(), 1)
-    cur_pct = cur_hist / max(cur_hist.sum(), 1)
+    ref_pct = ref_hist / max(ref_hist.sum(), 1) # Ei
+    cur_pct = cur_hist / max(cur_hist.sum(), 1) # Ai
 
     ref_pct = np.where(ref_pct == 0, 1e-4, ref_pct)
     cur_pct = np.where(cur_pct == 0, 1e-4, cur_pct)
@@ -138,10 +138,10 @@ def load_ph_state(feature: str) -> dict | None:
         if r.get("feature") != feature:
             continue
         return {
-            "cumsum": float(r.get("cumsum", 0)),
-            "min_cumsum": float(r.get("min_cumsum", 0)),
-            "running_mean": float(r.get("running_mean", 0)),
-            "n": int(r.get("n", 0)),
+            "cumsum": float(r.get("cumsum", 0)), # m
+            "min_cumsum": float(r.get("min_cumsum", 0)), # M
+            "running_mean": float(r.get("running_mean", 0)), # x_bar
+            "n": int(r.get("n", 0)), # n
             "last_timestamp": r.get("last_timestamp", ""),
         }
     return None
