@@ -1,4 +1,3 @@
-import logging
 import time
 from pathlib import Path
 
@@ -6,36 +5,14 @@ from dotenv import load_dotenv
 from litestar import Litestar, get, post
 from litestar.datastructures import State
 from litestar.exceptions import HTTPException
-from litestar.logging import LoggingConfig
 
+from app.logger import logger, logging_config, setup_hyperdx
 from app.model import load_model, predict
 from app.schemas import HealthResponse, PredictRequest, PredictResponse
 
 load_dotenv()
 
-logger = logging.getLogger("app")
-
 MODEL_PATH = Path(__file__).resolve().parent.parent / "model" / "loan_model.skops"
-
-
-def setup_hyperdx() -> None:
-    try:
-        from opentelemetry.sdk._logs import LoggingHandler
-
-        from hyperdx.opentelemetry import configure_opentelemetry
-
-        configure_opentelemetry()
-
-        for handler in logging.getLogger().handlers:
-            if isinstance(handler, LoggingHandler):
-                logger.addHandler(handler)
-                break
-
-        logger.info("HyperDX telemetry configured (logs + traces)")
-    except ImportError:
-        logger.warning("hyperdx-opentelemetry not installed: remote logging disabled")
-    except Exception:
-        logger.warning("Failed to configure HyperDX", exc_info=True)
 
 
 def on_startup(app: Litestar) -> None:
@@ -143,25 +120,6 @@ async def predict_endpoint(data: PredictRequest, state: State) -> PredictRespons
         approval_probability=result["approval_probability"],
     )
 
-
-logging_config = LoggingConfig(
-    root={"level": "INFO", "handlers": ["console"]},
-    formatters={
-        "standard": {
-            "format": "%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
-        },
-    },
-    handlers={
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    loggers={
-        "app": {"level": "DEBUG", "handlers": ["console"], "propagate": False},
-    },
-)
 
 app = Litestar(
     route_handlers=[home, health_check, predict_endpoint],
