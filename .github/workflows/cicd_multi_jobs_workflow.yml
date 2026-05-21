@@ -60,8 +60,8 @@ jobs:
       - name: Push Docker Image to ECR
         run: |
           aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-          docker tag ml-model-service:latest "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/churn-prediction:latest"
-          docker push "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/churn-prediction:latest"
+          docker tag ml-model-service:latest "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/loan-prediction:latest"
+          docker push "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/loan-prediction:latest"
 
 
   deploy:
@@ -77,7 +77,7 @@ jobs:
           envs: AWS_REGION,AWS_ACCOUNT_ID
           script: |
             aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-            docker pull "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/churn-prediction:latest"
-            docker stop churn-prediction || true
-            docker rm churn-prediction || true
-            docker run -d -p 80:8005 --name churn-prediction "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/churn-prediction:latest"
+            docker pull "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/loan-prediction:latest"
+            docker stop loan-prediction || true
+            docker rm loan-prediction || true
+            docker run -d -p 80:8005 --name loan-prediction "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/loan-prediction:latest"
