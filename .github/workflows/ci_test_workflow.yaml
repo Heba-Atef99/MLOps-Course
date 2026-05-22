@@ -2,7 +2,7 @@ name: An example of an automatic testing action
 on:
   push:
     branches:
-      - refactor/cicd-workflow2
+      - refactor/cicd-workflow
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
