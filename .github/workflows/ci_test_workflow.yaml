@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd 6_ci_cd/ci_example
-          pip install -r requirementss.txt
+          pip install -r requirements.txt
 
       - name: Run tests
         run: |
